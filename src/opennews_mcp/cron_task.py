@@ -115,6 +115,8 @@ async def run_cron_job():
         
         if not new_items:
             logger.info("No *new* news in the last hour.")
+            # Send a heartbeat message so the user knows the bot is alive
+            await send_tg_msg("🟢 **Monitor Active**\nNo significant news in the past hour.\nScanning continues...")
             return
 
         logger.info(f"Found {len(new_items)} new articles.")
@@ -139,7 +141,9 @@ async def run_cron_job():
             await asyncio.sleep(1)
             
     except Exception as e:
-        logger.error(f"Job failed: {e}")
+        error_msg = f"⚠️ **Monitor Error**: Job failed with error: {str(e)}"
+        logger.error(error_msg)
+        await send_tg_msg(error_msg)
     finally:
         await client.close()
 
