@@ -142,11 +142,22 @@ async def run_cron_job():
             content = item.get("content", "")
             url = item.get("url", "")
             source = item.get("source", "Unknown")
-            coins = ", ".join(item.get("coins", []) or [])
+            # Safe handling of coins list which might contain dicts or strings
+            raw_coins = item.get("coins", []) or []
+            coin_names = []
+            for c in raw_coins:
+                if isinstance(c, dict):
+                    # If coin is a dict, try to get name or symbol
+                    name = c.get("name") or c.get("symbol") or str(c)
+                    coin_names.append(name)
+                else:
+                    coin_names.append(str(c))
+            
+            coins_str = ", ".join(coin_names)
             
             tg_text = f"*{title}*\n\n{content[:200]}...\n\n"
-            if coins:
-                tg_text += f"Coins: `{coins}`\n"
+            if coins_str:
+                tg_text += f"Coins: `{coins_str}`\n"
             tg_text += f"Source: {source}\n"
             if url:
                 tg_text += f"[Read More]({url})"
