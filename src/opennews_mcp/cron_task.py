@@ -137,7 +137,12 @@ async def run_cron_job():
         logger.info(f"Found {len(new_items)} new articles.")
         
         # 3. Send to Telegram (Oldest first to maintain timeline order)
-        for item in reversed(new_items):
+        for i, item in enumerate(reversed(new_items)):
+            # Debug: print first item structure to logs
+            if i == 0:
+                logger.info(f"Sample Item Structure: {json.dumps(item, default=str)}")
+            
+            # Initial extraction attempt
             title = item.get("title", "No Title")
             content = item.get("content", "")
             url = item.get("url", "")
@@ -155,6 +160,18 @@ async def run_cron_job():
             
             coins_str = ", ".join(coin_names)
             
+            # Try multiple fields for title and content
+            title = item.get("title") or item.get("text") or item.get("headline") or "No Title"
+            content = item.get("content") or item.get("summary") or item.get("description") or item.get("text") or ""
+            
+            # If still no title but we have content, use first few words of content as title
+            if title == "No Title" and content:
+                title = content[:30] + "..."
+            
+            # If content is empty but we have title, maybe title is the content
+            if not content and title != "No Title":
+                content = title
+
             tg_text = f"*{title}*\n\n{content[:200]}...\n\n"
             if coins_str:
                 tg_text += f"Coins: `{coins_str}`\n"
