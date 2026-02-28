@@ -75,10 +75,9 @@ async def run_cron_job():
             logger.info("No news found.")
             return
 
-        # 2. Filter news from the last 65 minutes (to cover hourly cron + buffer)
-        # Assuming we run every hour
+        # 2. Filter news from the last 24 hours (for daily digest)
         now = datetime.now(timezone.utc)
-        time_threshold = now - timedelta(minutes=65)
+        time_threshold = now - timedelta(hours=24)
         
         new_items = []
         for item in news_list:
@@ -114,9 +113,9 @@ async def run_cron_job():
                 pass
         
         if not new_items:
-            logger.info("No *new* news in the last hour.")
-            # Send a heartbeat message so the user knows the bot is alive
-            await send_tg_msg("🟢 **Monitor Active**\nNo significant news in the past hour.\nScanning continues...")
+            logger.info("No new news in the last 24 hours.")
+            # Daily heartbeat
+            await send_tg_msg("🟢 **Daily Report**: No significant news in the past 24 hours.\nMonitor is active and healthy.")
             return
 
         logger.info(f"Found {len(new_items)} new articles.")
