@@ -76,14 +76,18 @@ async def run_cron_job():
             return
 
         # 2. Filter news from the last 24 hours (for daily digest)
+        # We will iterate all 20 items. If we find older items, we might need to fetch more pages?
+        # For simplicity, let's just use what we have, but loosen the time check or debug it.
+        # Actually, let's look at the raw time first.
+        
         now = datetime.now(timezone.utc)
-        time_threshold = now - timedelta(hours=24)
+        # Use a very generous threshold (e.g. 25 hours) to be safe
+        time_threshold = now - timedelta(hours=25)
         
         new_items = []
         for item in news_list:
             # Check publish time field, usually "publishTime" or "time" or "created_at"
             # Based on API, it's often "publishTime" (epoch ms) or "time" string
-            # Let's inspect the item structure or try common fields
             
             pub_time = None
             if "publishTime" in item:
@@ -94,23 +98,35 @@ async def run_cron_job():
                 except:
                     pass
             elif "time" in item:
-                 # ISO string
-                 pub_time = parse_time(item["time"])
+                 # ISO string or timestamp
+                 try:
+                     # Some APIs return time as string timestamp
+                     if str(item["time"]).isdigit():
+                         ts = int(item["time"]) / 1000.0
+                         pub_time = datetime.fromtimestamp(ts, timezone.utc)
+                     else:
+                         pub_time = parse_time(item["time"])
+                 except:
+                     pass
             elif "createTime" in item:
-                 pub_time = parse_time(item["createTime"])
+                 try:
+                     pub_time = parse_time(item["createTime"])
+                 except:
+                     pass
             
-            # If no time found, assume it's recent enough if it's in top 20
-            # But to be safe for cron duplication, we should try to filter.
-            # If we can't parse time, we include it? No, better to be strict or rely on ID storage.
-            # Since this is a stateless cron, filtering by time is best.
-            
+            # Debug log
+            # logger.info(f"Item time: {pub_time} vs Threshold: {time_threshold}")
+
             if pub_time:
+                # Ensure pub_time has timezone info
+                if pub_time.tzinfo is None:
+                    pub_time = pub_time.replace(tzinfo=timezone.utc)
+                
                 if pub_time > time_threshold:
                     new_items.append(item)
             else:
-                # Fallback: if no time, maybe include top 5 unconditionally?
-                # Let's just log warning
-                pass
+                # Fallback: if no time found, include it anyway to be safe
+                new_items.append(item)
         
         if not new_items:
             logger.info("No new news in the last 24 hours.")

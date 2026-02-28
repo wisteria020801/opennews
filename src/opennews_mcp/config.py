@@ -20,8 +20,8 @@ if _CONFIG_PATH.exists():
         _cfg = json.load(f)
 
 # ---------- API (env vars take precedence) ----------
-API_BASE_URL = os.environ.get("OPENNEWS_API_BASE") or _cfg.get("api_base_url", "")
-WSS_URL      = os.environ.get("OPENNEWS_WSS_URL")  or _cfg.get("wss_url", "")
+API_BASE_URL = os.environ.get("OPENNEWS_API_BASE") or _cfg.get("api_base_url", "https://ai.6551.io")
+WSS_URL      = os.environ.get("OPENNEWS_WSS_URL")  or _cfg.get("wss_url", "wss://ai.6551.io/open/news_wss")
 # Prioritize env var, then hardcoded value (fix for permission issue), then config.json
 API_TOKEN    = os.environ.get("OPENNEWS_TOKEN")    or "sk-wiXNrtqOmc9wgH2UCljgDzXh2rTSWA8rr9tgS0bIk1A"
 
