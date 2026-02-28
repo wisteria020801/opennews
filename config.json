@@ -1,0 +1,10 @@
+{
+  "api_base_url": "https://ai.6551.io",
+  "wss_url": "wss://ai.6551.io/open/news_wss",
+  "api_token": "",
+  "max_rows": 100,
+  "telegram": {
+    "bot_token": "8748507547:AAGPu9ShzcAoxKkSulr-i7q4zW1CCm_-GY",
+    "chat_id": "-1003754249990"
+  }
+}
