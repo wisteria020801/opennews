@@ -50,6 +50,8 @@ async def send_tg_msg(text: str, chat_id: str = None):
             resp.raise_for_status()
         except Exception as e:
             logger.error(f"Failed to send TG message: {e}")
+            # Ensure GitHub Action fails if sending message fails
+            sys.exit(1)
 
 def clean_text(value):
     if value is None:

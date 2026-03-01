@@ -2,9 +2,11 @@
 name: OpenNews Daily Monitor
 
 on:
+  push:
+    branches: [ "main" ]
   schedule:
-    # Runs at 00:00 UTC every day (08:00 Beijing Time)
-    - cron: '0 0 * * *'
+    # Runs at 23:45 UTC every day (07:45 Beijing Time) to ensure 8:00 AM delivery
+    - cron: '45 23 * * *'
   # Allow manual trigger
   workflow_dispatch:
 
