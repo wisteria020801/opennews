@@ -249,8 +249,7 @@ async def _send_telegram(lines: list[str], category: str = "all") -> str:
     header = headers.get(category, headers["all"])
     
     # 构建消息体 (支持 Markdown)
-    msg_body = f"{header}\n━━━━━━━━━━━━━━━━━━\n" + "\n".join(lines)
-    msg_body += "\n━━━━━━━━━━━━━━━━━━\n_Powered by Wisteria Intelligence_"
+    msg_body = f"{header}\n━━━━━━━━━━━━━━━━━━\n" + "\n".join(lines) + "\n━━━━━━━━━━━━━━━━━━\n_Powered by Wisteria_"
     
     async with httpx.AsyncClient(timeout=15.0) as c:
         r = await c.post(

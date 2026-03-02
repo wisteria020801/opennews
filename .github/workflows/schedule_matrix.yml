@@ -38,6 +38,6 @@ jobs:
           # Step 1: Run Matrix Bots (A-D)
           python src/run_multibot_matrix.py
           
-          # Step 2: Run Oracle (Bot E)
+          # Step 2: Run Oracle (Bot F)
           # Ensure Oracle runs AFTER the matrix has finished gathering signals
-          python src/bot_e_oracle.py
+          python src/bot_f_oracle.py

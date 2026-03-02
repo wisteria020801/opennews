@@ -1,6 +1,6 @@
 # Wisteria Intelligence News Matrix (OpenNews-MCP)
 
-> **Powered by Wisteria Intelligence**  
+> **Powered by Wisteria**  
 > An advanced, multi-bot information arbitrage system for real-time global intelligence.
 
 ## 1. System Architecture: The "5+1" Matrix
@@ -12,16 +12,16 @@ These bots run in parallel to scan high-frequency data sources.
 
 | Bot Code | Agent Name | Focus Area | Key Sources |
 | :--- | :--- | :--- | :--- |
-| **A** | **🌍 Alpha-Sentry** | Global News & Geopolitics | Reuters World, AP, CNN, Al Jazeera |
-| **B** | **💹 Beta-Tracker** | Finance & Crypto Arbitrage | Wallstreetcn, Jin10, Investing.com, The Block |
-| **C** | **⚖️ Charlie-Watch** | Politics & Policy | Politico, Fox News, Government Feeds (SEC/CFTC) |
-| **D** | **📡 Delta-Radar** | Tech, Military & Social | Defence Blog, Variety, TMZ, YouTube Trends |
-| **E** | **(Reserved)** | (Expansion Slot) | *Currently covered by Delta-Radar* |
+| **A** | **🌍 Alpha-Sentry (哨兵)** | Global News & Geopolitics | Reuters World, AP, CNN, Al Jazeera |
+| **B** | **💹 Beta-Tracker (追踪)** | Finance & Crypto Arbitrage | Wallstreetcn, Jin10, Investing.com, The Block |
+| **C** | **⚖️ Charlie-Watch (守望)** | Politics & Policy | Politico, Fox News, Government Feeds (SEC/CFTC) |
+| **D** | **📡 Delta-Radar (雷达)** | Entertainment & Social | Variety, TMZ, YouTube Trends |
+| **E** | **⚔️ Echo-WarRoom (战情)** | Military & Conflict | Defence Blog, Military.com, Defense One |
 
 ### The Oracle (Analysis & Insight)
 | Bot Code | Agent Name | Role | Function |
 | :--- | :--- | :--- | :--- |
-| **F** | **🔮 Echo-Oracle** | Synthesis & Red Alerts | Runs *after* collectors. Analyzes cross-domain data for "Red Alerts" (e.g., War + Market Crash). |
+| **F** | **🔮 Foxtrot-Oracle (先知)** | Synthesis & Red Alerts | Runs *after* collectors. Analyzes cross-domain data for "Red Alerts" (e.g., War + Market Crash). |
 
 ---
 
@@ -71,7 +71,8 @@ TELEGRAM_BOT_TOKEN_A="<Alpha-Sentry Token>"
 TELEGRAM_BOT_TOKEN_B="<Beta-Tracker Token>"
 TELEGRAM_BOT_TOKEN_C="<Charlie-Watch Token>"
 TELEGRAM_BOT_TOKEN_D="<Delta-Radar Token>"
-TELEGRAM_BOT_TOKEN_ORACLE="<Echo-Oracle Token>" # Optional, defaults to Bot A if missing
+TELEGRAM_BOT_TOKEN_E="<Echo-WarRoom Token>"
+TELEGRAM_BOT_TOKEN_F="<Foxtrot-Oracle Token>" # Optional, defaults to Bot A if missing
 TELEGRAM_CHAT_ID="<Your Target Channel ID>"
 ```
 
@@ -79,11 +80,11 @@ TELEGRAM_CHAT_ID="<Your Target Channel ID>"
 To run the full matrix cycle immediately:
 
 ```bash
-# 1. Run the Collectors (A-D)
+# 1. Run the Collectors (A-E)
 python src/run_multibot_matrix.py
 
 # 2. Run the Oracle (F)
-python src/bot_e_oracle.py
+python src/bot_f_oracle.py
 ```
 
 ### Automated Scheduling (GitHub Actions)
@@ -92,8 +93,8 @@ The system is configured to run automatically via `.github/workflows/schedule_ma
 *   **Workflow**:
     1.  Sets up Python environment.
     2.  Installs dependencies.
-    3.  Executes `run_multibot_matrix.py` (Collectors).
-    4.  Executes `bot_e_oracle.py` (Oracle).
+    3.  Executes `run_multibot_matrix.py` (Collectors A-E).
+    4.  Executes `bot_f_oracle.py` (Oracle F).
 
 ---
 
