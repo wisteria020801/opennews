@@ -44,6 +44,8 @@ SOURCES = [
     ("TMZ", "https://www.tmz.com/rss.xml"),
     ("YouTube: Bloomberg", "https://rsshub.app/youtube/channel/UCOAYqZ5qiQC78px6fLPz_OQ"),
     ("YouTube: CNBC", "https://rsshub.app/youtube/channel/UCvJJ_dzjViJCoLf5uK9txAw"),
+    ("Twitter: Elon Musk (via RSSHub)", "https://rsshub.app/twitter/user/elonmusk"),
+    ("Weibo: Hot Search (via RSSHub)", "https://rsshub.app/weibo/search/hot"),
 ]
 
 KEYWORDS = re.compile(r"(SEC|ETF|listing|suspend|halt|hack|merger|liquidation|bankruptcy|court|lawsuit|approval|上市|暂停|黑客|诉讼|合并|破产|下架|批准|传闻|war|conflict|strike|election|policy|scandal|movie|star|army|navy|air force|missile|tank|drone|interest rate|fed|cpi|inflation|rates|rate hike|cut|stimulus|gdp|nfp|payroll|oil|gold|btc|eth|crypto|regulation|sanction|trade war|tariff|video|trailer|interview)", re.I)

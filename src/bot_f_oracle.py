@@ -40,21 +40,21 @@ async def run_oracle():
         print("   - No significant signals found. Sleeping.")
         return
 
-    # 2. AI Analysis (Ollama with Fallback)
+    # 2. AI Analysis (Gemini Cloud API > Local Ollama > Keyword Fallback)
     # ------------------------------------------------------------------
-    # Connects to local Ollama instance (http://localhost:11434)
-    # Default model: qwen2.5:3b (Detect user's installed model)
+    # Strategy:
+    # 1. Try Gemini API (Cloud-Ready, Free Tier)
+    # 2. Try Local Ollama (Local Dev)
+    # 3. Fallback to Keywords
     # ------------------------------------------------------------------
     print(f"   - Analyzing {len(all_items)} data points using AI...")
     
     ai_insight = ""
-    ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
-    # Updated default model to qwen2.5:3b as detected in user env
-    ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     
-    # Prepare prompt
+    # Prepare prompt (Shared)
     news_text = "\n".join([f"- {item.get('source')}: {item.get('title')}" for item in all_items[:15]])
-    prompt = f"""
+    prompt_text = f"""
     你是一个专业的情报分析师（Oracle）。请根据以下新闻标题，分析全球风险和金融套利机会：
     
     {news_text}
@@ -65,30 +65,49 @@ async def run_oracle():
     3. 请用中文回答，保持简练（50字以内）。
     4. 格式： "🔴 [事件] -> 📉/📈 [影响]"
     """
-    
-    try:
-        print(f"   - Calling Ollama ({ollama_model})...")
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(
-                ollama_url,
-                json={
-                    "model": ollama_model,
-                    "prompt": prompt,
-                    "stream": False
+
+    # Attempt 1: Gemini API
+    if gemini_key:
+        try:
+            print(f"   - Calling Google Gemini API...")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Using Gemini 1.5 Flash (Free Tier friendly)
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                payload = {
+                    "contents": [{"parts": [{"text": prompt_text}]}]
                 }
-            )
-            if response.status_code == 200:
-                result = response.json()
-                ai_insight = result.get("response", "").strip()
-                print("   ✅ AI Analysis Complete.")
-            else:
-                print(f"   ⚠️ Ollama Error: {response.status_code}")
-    except Exception as e:
-        print(f"   ⚠️ Ollama connection failed: {e}. Falling back to Keyword Resonance.")
+                response = await client.post(url, json=payload)
+                if response.status_code == 200:
+                    result = response.json()
+                    ai_insight = result["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    print("   ✅ Gemini Analysis Complete.")
+                else:
+                    print(f"   ⚠️ Gemini Error: {response.status_code} {response.text}")
+        except Exception as e:
+            print(f"   ⚠️ Gemini connection failed: {e}")
+
+    # Attempt 2: Local Ollama (if Gemini failed or no key)
+    if not ai_insight:
+        ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+        ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
+        try:
+            print(f"   - Calling Local Ollama ({ollama_model})...")
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(
+                    ollama_url,
+                    json={"model": ollama_model, "prompt": prompt_text, "stream": False}
+                )
+                if response.status_code == 200:
+                    result = response.json()
+                    ai_insight = result.get("response", "").strip()
+                    print("   ✅ Ollama Analysis Complete.")
+        except Exception as e:
+            print(f"   ⚠️ Ollama connection failed: {e}")
 
     # Fallback: Keyword Resonance
     resonant_items = []
     if not ai_insight:
+        print("   - Fallback to Keyword Resonance...")
         triggers = ["war", "rate", "attack", "sanction", "bitcoin", "oil", "gold", "inflation", "nuclear", "missile", "crash"]
         for item in all_items:
             title = item.get("title", "").lower()
@@ -98,6 +117,7 @@ async def run_oracle():
                     break
         if resonant_items:
             ai_insight = "检测到高频风险关键词 (War/Finance)。建议关注 **黄金/原油/BTC** 短期剧烈波动。(Fallback Mode)"
+
         else:
             print("   - No significant signals found (AI & Keyword). Sleeping.")
             return
