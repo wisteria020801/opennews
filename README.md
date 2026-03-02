@@ -89,12 +89,21 @@ python src/bot_f_oracle.py
 
 ### Automated Scheduling (GitHub Actions)
 The system is configured to run automatically via `.github/workflows/schedule_matrix.yml`.
-*   **Schedule**: Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
-*   **Workflow**:
-    1.  Sets up Python environment.
-    2.  Installs dependencies.
-    3.  Executes `run_multibot_matrix.py` (Collectors A-E).
-    4.  Executes `bot_f_oracle.py` (Oracle F).
+
+#### 🕒 Daily Schedule (Beijing Time | UTC+8)
+The bots will wake up and report **3 times daily**:
+1.  **Morning Briefing (08:00)**: Start the day with overnight global news.
+2.  **Midday Update (14:00)**: Catch up on Asian market close and European open.
+3.  **Evening Wrap-up (20:00)**: Prepare for US market open.
+
+*Note: GitHub Actions may have a slight delay (10-30 mins).*
+
+#### ✅ How to Verify Automation
+1.  Go to your GitHub Repository page.
+2.  Click on the **Actions** tab at the top.
+3.  Look for "Multi-Bot News Matrix" in the left sidebar.
+4.  You will see a list of past runs (Green Check = Success, Red X = Failure).
+5.  Click on any run to see detailed logs.
 
 ---
 
