@@ -50,7 +50,8 @@ async def run_oracle():
     print(f"   - Analyzing {len(all_items)} data points using AI...")
     
     ai_insight = ""
-    gemini_key = os.environ.get("GEMINI_API_KEY")
+    # Use provided key as default if env var is missing
+    gemini_key = os.environ.get("GEMINI_API_KEY", "AIzaSyDP3V2Lgh4N2BRIyzvN9y_VAEGcL69GfOQ")
     
     # Prepare prompt (Shared)
     news_text = "\n".join([f"- {item.get('source')}: {item.get('title')}" for item in all_items[:15]])
