@@ -43,26 +43,27 @@ async def run_oracle():
     # 2. AI Analysis (Ollama with Fallback)
     # ------------------------------------------------------------------
     # Connects to local Ollama instance (http://localhost:11434)
-    # Default model: llama3 (can be changed via OLLAMA_MODEL env var)
+    # Default model: qwen2.5:3b (Detect user's installed model)
     # ------------------------------------------------------------------
     print(f"   - Analyzing {len(all_items)} data points using AI...")
     
     ai_insight = ""
     ollama_url = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
-    ollama_model = os.environ.get("OLLAMA_MODEL", "llama3")
+    # Updated default model to qwen2.5:3b as detected in user env
+    ollama_model = os.environ.get("OLLAMA_MODEL", "qwen2.5:3b")
     
     # Prepare prompt
     news_text = "\n".join([f"- {item.get('source')}: {item.get('title')}" for item in all_items[:15]])
     prompt = f"""
-    As an expert intelligence analyst (Oracle), analyze these news headlines for critical global risks and financial arbitrage opportunities:
+    你是一个专业的情报分析师（Oracle）。请根据以下新闻标题，分析全球风险和金融套利机会：
     
     {news_text}
     
-    Task:
-    1. Identify the single most critical event.
-    2. Predict 1 short-term market impact (e.g., Gold up, Crypto down).
-    3. Keep it under 50 words. Use Chinese.
-    4. Format: "🔴 [Event] -> 📉/📈 [Impact]"
+    任务：
+    1. 识别一个最关键的事件。
+    2. 预测一个短期市场影响（如：黄金上涨，加密货币下跌）。
+    3. 请用中文回答，保持简练（50字以内）。
+    4. 格式： "🔴 [事件] -> 📉/📈 [影响]"
     """
     
     try:
