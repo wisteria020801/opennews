@@ -1,344 +1,124 @@
-<p align="center">
-  <b>OpenNews MCP Server</b><br>
-  Crypto News Aggregation · AI Ratings · Trading Signals · Real-time Updates
-</p>
+# Wisteria Intelligence News Matrix (OpenNews-MCP)
 
-<p align="center">
-  <a href="./README.md">English</a> | <a href="./docs/README_ZH.md">中文</a> | <a href="./docs/README_JA.md">日本語</a> | <a href="./docs/README_KO.md">한국어</a>
-</p>
+> **Powered by Wisteria Intelligence**  
+> An advanced, multi-bot information arbitrage system for real-time global intelligence.
+
+## 1. System Architecture: The "5+1" Matrix
+
+This system implements a professional intelligence gathering network consisting of 5 specialized "Collector" bots and 1 central "Oracle" bot.
+
+### The Collectors (Information Gathering)
+These bots run in parallel to scan high-frequency data sources.
+
+| Bot Code | Agent Name | Focus Area | Key Sources |
+| :--- | :--- | :--- | :--- |
+| **A** | **🌍 Alpha-Sentry** | Global News & Geopolitics | Reuters World, AP, CNN, Al Jazeera |
+| **B** | **💹 Beta-Tracker** | Finance & Crypto Arbitrage | Wallstreetcn, Jin10, Investing.com, The Block |
+| **C** | **⚖️ Charlie-Watch** | Politics & Policy | Politico, Fox News, Government Feeds (SEC/CFTC) |
+| **D** | **📡 Delta-Radar** | Tech, Military & Social | Defence Blog, Variety, TMZ, YouTube Trends |
+| **E** | **(Reserved)** | (Expansion Slot) | *Currently covered by Delta-Radar* |
+
+### The Oracle (Analysis & Insight)
+| Bot Code | Agent Name | Role | Function |
+| :--- | :--- | :--- | :--- |
+| **F** | **🔮 Echo-Oracle** | Synthesis & Red Alerts | Runs *after* collectors. Analyzes cross-domain data for "Red Alerts" (e.g., War + Market Crash). |
 
 ---
 
-## Quick Install
+## 2. Data Sources (High-Value Feeds)
 
-> **First, get your API Token at [https://6551.io/mcp](https://6551.io/mcp).**
+We have integrated over 20+ high-value, free data sources, optimized for speed and reliability.
 
-### Claude Code
+### 🚀 Finance & Crypto (Arbitrage Focused)
+*   **Wallstreetcn (华尔街见闻)**: Real-time global financial news (JSON API).
+*   **Jin10 (金十数据)**: High-speed flash news for trading (JSON API).
+*   **Investing.com**: Global markets.
+*   **Yahoo Finance**: Stock market updates.
+*   **The Block / Foresight News**: Crypto industry deep dives.
+*   **CoinDesk / Cointelegraph**: Crypto market movements.
+*   **SEC / CFTC**: Regulatory press releases.
+
+### 🌍 Geopolitics & World
+*   **Reuters World / Business**: Top-tier global wire service.
+*   **AP News**: Associated Press global feed.
+*   **Al Jazeera / CNN**: Regional coverage.
+
+### ⚔️ Military & Defense
+*   **Defence Blog**: Military hardware and conflict news.
+*   **Defense One**: Defense policy and strategy.
+*   **Military.com**: Operational news.
+
+### 🎭 Social & Entertainment
+*   **Variety**: Entertainment industry business.
+*   **TMZ**: Celebrity and social trends.
+*   **YouTube (RSSHub)**: Tracking Bloomberg/CNBC video feeds.
+
+---
+
+## 3. Deployment & Usage
+
+### Prerequisites
+*   Python 3.10+
+*   Telegram Bot Tokens (5-6 tokens recommended)
+*   GitHub Account (for automated scheduling)
+
+### Configuration
+Set the following secrets in your GitHub Repository or `.env` file:
 
 ```bash
-claude mcp add opennews \
-  -e OPENNEWS_TOKEN=<your-token> \
-  -- uv --directory /path/to/opennews-mcp run opennews-mcp
+# Telegram Configuration
+TELEGRAM_BOT_TOKEN_A="<Alpha-Sentry Token>"
+TELEGRAM_BOT_TOKEN_B="<Beta-Tracker Token>"
+TELEGRAM_BOT_TOKEN_C="<Charlie-Watch Token>"
+TELEGRAM_BOT_TOKEN_D="<Delta-Radar Token>"
+TELEGRAM_BOT_TOKEN_ORACLE="<Echo-Oracle Token>" # Optional, defaults to Bot A if missing
+TELEGRAM_CHAT_ID="<Your Target Channel ID>"
 ```
 
-> Replace `/path/to/opennews-mcp` with your local project path, and `<your-token>` with your API token.
-
-### OpenClaw
+### Manual Execution (Local)
+To run the full matrix cycle immediately:
 
 ```bash
-export OPENNEWS_TOKEN="<your-token>"
-cp -r openclaw-skill/opennews ~/.openclaw/skills/
+# 1. Run the Collectors (A-D)
+python src/run_multibot_matrix.py
+
+# 2. Run the Oracle (F)
+python src/bot_e_oracle.py
 ```
 
----
-
-## Let AI Review and Install
-
-Not sure if this MCP is safe? Send the following prompt to your AI assistant to review the source code before installing:
-
-> **Copy the prompt below and paste it to your AI assistant (replace `<project-path>` and `<your-token>` with actual values):**
-
-```text
-Please help me review and install the opennews-mcp MCP server. The project is at <project-path>.
-
-Steps:
-1. Review the security of the following files:
-   - src/opennews_mcp/api_client.py — Confirm it only connects to ai.6551.io, no data sent elsewhere
-   - src/opennews_mcp/config.py — Confirm token is only read from local config.json or env vars, not hardcoded or leaked
-   - src/opennews_mcp/tools/*.py — Confirm all tools only do API queries, no file writes, command execution, or dangerous operations
-   - pyproject.toml — Confirm dependencies are only mcp, httpx, websockets, no suspicious packages
-2. Tell me your conclusion: Safe / Risky / Problematic, and the specific reasons
-3. If safe, help me install (Token from https://6551.io/mcp):
-   claude mcp add opennews -e OPENNEWS_TOKEN=<your-token> -- uv --directory <project-path> run opennews-mcp
-```
+### Automated Scheduling (GitHub Actions)
+The system is configured to run automatically via `.github/workflows/schedule_matrix.yml`.
+*   **Schedule**: Runs every 6 hours (00:00, 06:00, 12:00, 18:00 UTC).
+*   **Workflow**:
+    1.  Sets up Python environment.
+    2.  Installs dependencies.
+    3.  Executes `run_multibot_matrix.py` (Collectors).
+    4.  Executes `bot_e_oracle.py` (Oracle).
 
 ---
 
-## What Can It Do?
+## 4. Integration with ClawDBot (OpenClaw)
 
-After connecting, just tell your AI assistant:
+This project is built on the **Model Context Protocol (MCP)**, making it "Skill-Ready" for advanced AI agents like ClawDBot.
 
-| You Say | It Does |
-|---------|---------|
-| "Latest crypto news" | Get latest articles |
-| "Search SEC regulation news" | Full-text keyword search |
-| "BTC related news" | Filter by coin |
-| "Bloomberg articles" | Filter by source |
-| "On-chain events" | Filter by engine type (onchain) |
-| "Important news with AI score above 80" | High score filtering |
-| "Bullish signals" | Filter by trading signal (long) |
-| "Subscribe to real-time news" | WebSocket live updates |
+### Method A: SSH MCP (Recommended for Remote Servers)
+If ClawDBot supports SSH MCP connections:
+1.  Deploy this repo to your cloud server.
+2.  Configure ClawDBot to connect via SSH to this directory.
+3.  ClawDBot will automatically discover the `opennews_mcp` server and its tools (`aggregator_rss`, `get_latest_news`, etc.).
 
----
-
-## Available Tools
-
-| Category | Tool | Description |
-|----------|------|-------------|
-| Discovery | `get_news_sources` | Get all news source category tree |
-| | `list_news_types` | All available news source codes |
-| Search | `get_latest_news` | Latest articles |
-| | `search_news` | Keyword search |
-| | `search_news_by_coin` | By coin (BTC, ETH, SOL...) |
-| | `get_news_by_source` | By engine type and source |
-| | `get_news_by_engine` | By type (news, listing, onchain, meme, market) |
-| | `search_news_advanced` | Advanced search (multiple filters) |
-| AI | `get_high_score_news` | Articles with score >= threshold |
-| | `get_news_by_signal` | By signal: long / short / neutral |
-| Real-time | `subscribe_latest_news` | WebSocket real-time collection |
-
----
-
-## Configuration
-
-### Get API Token
-
-Get your API Token at [https://6551.io/mcp](https://6551.io/mcp).
-
-Set environment variable:
-
-```bash
-# macOS / Linux
-export OPENNEWS_TOKEN="<your-token>"
-
-# Windows PowerShell
-$env:OPENNEWS_TOKEN = "<your-token>"
-```
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `OPENNEWS_TOKEN` | **Yes** | 6551 API Bearer Token (from https://6551.io/mcp) |
-| `OPENNEWS_API_BASE` | No | Override REST API URL |
-| `OPENNEWS_WSS_URL` | No | Override WebSocket URL |
-| `OPENNEWS_MAX_ROWS` | No | Max results per request (default 100) |
-
-Also supports `config.json` in project root (env vars take precedence):
-
-```json
-{
-  "api_base_url": "https://ai.6551.io",
-  "wss_url": "wss://ai.6551.io/open/news_wss",
-  "api_token": "<your-token>",
-  "max_rows": 100
-}
-```
-
----
-
-## Data Structure
-
-Each article returns:
-
-```json
-{
-  "id": "unique-article-id",
-  "text": "Title / Content",
-  "newsType": "Bloomberg",
-  "engineType": "news",
-  "link": "https://...",
-  "coins": [{ "symbol": "BTC", "market_type": "spot", "match": "title" }],
-  "aiRating": {
-    "score": 85,
-    "grade": "A",
-    "signal": "long",
-    "status": "done",
-    "summary": "Chinese summary",
-    "enSummary": "English summary"
-  },
-  "ts": 1708473600000
-}
-```
-
-| AI Field | Description |
-|----------|-------------|
-| `score` | 0-100 impact score |
-| `signal` | `long` (bullish) / `short` (bearish) / `neutral` |
-| `status` | `done` = AI analysis completed |
-
----
-
-<details>
-<summary><b>Manual Installation for Other Clients</b> (click to expand)</summary>
-
-> In all configurations below, replace `/path/to/opennews-mcp` with your actual local project path, and `<your-token>` with your token from [https://6551.io/mcp](https://6551.io/mcp).
-
-### Claude Desktop
-
-Edit config file (macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`, Windows: `%APPDATA%\Claude\claude_desktop_config.json`):
-
-```json
-{
-  "mcpServers": {
+### Method B: As a Skill Module
+To "package" this as a skill for ClawDBot:
+1.  Ensure ClawDBot can execute Python scripts or MCP servers.
+2.  The file `src/opennews_mcp/server.py` exposes the core logic as an MCP server.
+3.  Add the following command to ClawDBot's MCP configuration:
+    ```json
     "opennews": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/opennews-mcp", "run", "opennews-mcp"],
-      "env": {
-        "OPENNEWS_TOKEN": "<your-token>"
-      }
+      "command": "python",
+      "args": ["src/opennews_mcp/server.py"]
     }
-  }
-}
-```
+    ```
 
-### Cursor
-
-`~/.cursor/mcp.json` or Settings > MCP Servers:
-
-```json
-{
-  "mcpServers": {
-    "opennews": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/opennews-mcp", "run", "opennews-mcp"],
-      "env": {
-        "OPENNEWS_TOKEN": "<your-token>"
-      }
-    }
-  }
-}
-```
-
-### Windsurf
-
-`~/.codeium/windsurf/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "opennews": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/opennews-mcp", "run", "opennews-mcp"],
-      "env": {
-        "OPENNEWS_TOKEN": "<your-token>"
-      }
-    }
-  }
-}
-```
-
-### Cline
-
-VS Code sidebar > Cline > MCP Servers > Configure, edit `cline_mcp_settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "opennews": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/opennews-mcp", "run", "opennews-mcp"],
-      "env": {
-        "OPENNEWS_TOKEN": "<your-token>"
-      },
-      "disabled": false,
-      "autoApprove": []
-    }
-  }
-}
-```
-
-### Continue.dev
-
-`~/.continue/config.yaml`:
-
-```yaml
-mcpServers:
-  - name: opennews
-    command: uv
-    args:
-      - --directory
-      - /path/to/opennews-mcp
-      - run
-      - opennews-mcp
-    env:
-      OPENNEWS_TOKEN: <your-token>
-```
-
-### Cherry Studio
-
-Settings > MCP Servers > Add > Type stdio: Command `uv`, Args `--directory /path/to/opennews-mcp run opennews-mcp`, Env `OPENNEWS_TOKEN`.
-
-### Zed Editor
-
-`~/.config/zed/settings.json`:
-
-```json
-{
-  "context_servers": {
-    "opennews": {
-      "command": {
-        "path": "uv",
-        "args": ["--directory", "/path/to/opennews-mcp", "run", "opennews-mcp"],
-        "env": {
-          "OPENNEWS_TOKEN": "<your-token>"
-        }
-      }
-    }
-  }
-}
-```
-
-### Any stdio MCP Client
-
-```bash
-OPENNEWS_TOKEN=<your-token> \
-  uv --directory /path/to/opennews-mcp run opennews-mcp
-```
-
-</details>
-
----
-
-## Compatibility
-
-| Client | Installation | Status |
-|--------|--------------|--------|
-| **Claude Code** | `claude mcp add` | One-click |
-| **OpenClaw** | Copy Skill directory | One-click |
-| Claude Desktop | JSON config | Supported |
-| Cursor | JSON config | Supported |
-| Windsurf | JSON config | Supported |
-| Cline | JSON config | Supported |
-| Continue.dev | YAML / JSON | Supported |
-| Cherry Studio | GUI | Supported |
-| Zed | JSON config | Supported |
-
----
-
-## Related Projects
-
-- [twitter-mcp](https://github.com/6551-io/twitter-mcp) - Twitter/X data MCP server
-
----
-
-## Development
-
-```bash
-cd /path/to/opennews-mcp
-uv sync
-uv run opennews-mcp
-```
-
-```bash
-# MCP Inspector test
-npx @modelcontextprotocol/inspector uv --directory /path/to/opennews-mcp run opennews-mcp
-```
-
-### Project Structure
-
-```
-├── README.md
-├── openclaw-skill/opennews/   # OpenClaw Skill
-├── knowledge/guide.md         # Embedded knowledge
-├── pyproject.toml
-├── config.json
-└── src/opennews_mcp/
-    ├── server.py              # Entry point
-    ├── app.py                 # FastMCP instance
-    ├── config.py              # Config loading
-    ├── api_client.py          # HTTP + WebSocket
-    └── tools/                 # Tools
-```
-
-## License
-
-MIT
+### Future Roadmap
+*   **LLM Integration**: Connect the "Oracle" to a local LLM (Ollama/Llama 3) for real semantic analysis instead of keyword matching.
+*   **Interactive Mode**: Allow users to query the bot (e.g., "/analyze BTC price").

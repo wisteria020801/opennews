@@ -1,0 +1,43 @@
+name: Multi-Bot News Matrix
+
+on:
+  schedule:
+    # 每天早中晚播报三次 (UTC 时间 00:00, 06:00, 12:00 -> 北京时间 08:00, 14:00, 20:00)
+    - cron: '0 0,6,12 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  run-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install httpx mcp
+
+      - name: Run Bot Matrix
+        env:
+          # 如果你在脚本里写死了Token，这里可以不填；但推荐用 Secrets
+          BOT_TOKEN_A: ${{ secrets.BOT_TOKEN_A }}
+          CHAT_ID_A: ${{ secrets.CHAT_ID_A }}
+          BOT_TOKEN_B: ${{ secrets.BOT_TOKEN_B }}
+          CHAT_ID_B: ${{ secrets.CHAT_ID_B }}
+          # ... 其他 Bot 配置
+        run: |
+          # 确保 PYTHONPATH 包含项目根目录
+          export PYTHONPATH=$PYTHONPATH:$(pwd)
+          
+          # Step 1: Run Matrix Bots (A-D)
+          python src/run_multibot_matrix.py
+          
+          # Step 2: Run Oracle (Bot E)
+          # Ensure Oracle runs AFTER the matrix has finished gathering signals
+          python src/bot_e_oracle.py

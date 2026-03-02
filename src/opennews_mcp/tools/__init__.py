@@ -7,3 +7,4 @@ from opennews_mcp.tools import discovery  # noqa: F401
 from opennews_mcp.tools import news       # noqa: F401
 from opennews_mcp.tools import realtime   # noqa: F401
 from opennews_mcp.tools import telegram   # noqa: F401
+from opennews_mcp.tools import aggregator_rss  # noqa: F401
