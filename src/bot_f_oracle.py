@@ -72,8 +72,8 @@ async def run_oracle():
         try:
             print(f"   - Calling Google Gemini API...")
             async with httpx.AsyncClient(timeout=30.0) as client:
-                # Using Gemini 1.5 Flash (Free Tier friendly)
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={gemini_key}"
+                # Using Gemini 2.0 Flash-Lite (Fastest/Cheapest for Free Tier)
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={gemini_key}"
                 payload = {
                     "contents": [{"parts": [{"text": prompt_text}]}]
                 }
@@ -82,6 +82,8 @@ async def run_oracle():
                     result = response.json()
                     ai_insight = result["candidates"][0]["content"]["parts"][0]["text"].strip()
                     print("   ✅ Gemini Analysis Complete.")
+                elif response.status_code == 429:
+                    print("   ⚠️ Gemini Rate Limit Exceeded (Free Tier). Switching to Local/Fallback.")
                 else:
                     print(f"   ⚠️ Gemini Error: {response.status_code} {response.text}")
         except Exception as e:
