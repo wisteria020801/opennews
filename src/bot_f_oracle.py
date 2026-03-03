@@ -19,11 +19,14 @@ except ImportError:
 # Configuration for Bot F (The Oracle / 先知)
 # Strategy: Reuse Bot A's token if a dedicated Oracle token is not provided.
 # This implements the "5+1" architecture where the 6th bot (Oracle) runs sequentially.
-BOT_TOKEN_ORACLE = os.environ.get("BOT_TOKEN_F", "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc")
-CHAT_ID = "-1003590230315" # Force correct ID (ignore env var)
+BOT_TOKEN_ORACLE = os.environ.get("BOT_TOKEN_F") or os.environ.get("BOT_TOKEN_A")
+CHAT_ID = os.environ.get("CHAT_ID_F", "-1003590230315")
 
 async def run_oracle():
     print("🔮 Foxtrot-Oracle (先知) is waking up...")
+    if not BOT_TOKEN_ORACLE or not CHAT_ID:
+        print("   - Missing BOT_TOKEN_F/BOT_TOKEN_A or CHAT_ID_F. Sleeping.")
+        return
     
     # 1. Aggregate signals from all sectors (World, Finance, Politics)
     print("   - Scanning global signals...")
@@ -50,8 +53,7 @@ async def run_oracle():
     print(f"   - Analyzing {len(all_items)} data points using AI...")
     
     ai_insight = ""
-    # Use provided key as default if env var is missing
-    gemini_key = os.environ.get("GEMINI_API_KEY", "AIzaSyDP3V2Lgh4N2BRIyzvN9y_VAEGcL69GfOQ")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
     
     # Prepare prompt (Shared)
     news_text = "\n".join([f"- {item.get('source')}: {item.get('title')}" for item in all_items[:15]])

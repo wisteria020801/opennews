@@ -48,8 +48,8 @@ jobs:
           BOT_TOKEN_E: ${{ secrets.MILLITARYBOTTOKEN }}
           CHAT_ID_E: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
 
-          # Bot F (Oracle) -> Reusing Bot A or dedicated if available
-          BOT_TOKEN_F: ${{ secrets.WORLDNEWSBOTTOKEN }}
+          # Bot F (Oracle)
+          BOT_TOKEN_F: ${{ secrets.ORACLETOKEN }}
           CHAT_ID_F: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 

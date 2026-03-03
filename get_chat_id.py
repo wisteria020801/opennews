@@ -2,9 +2,12 @@ import asyncio
 import httpx
 import sys
 
-# 默认使用 Bot A (World) 的 Token，因为它通常是第一个进群的
-# 如果这个 Token 也是新的，请手动替换
-DEFAULT_TOKEN = "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc"
+def _default_token() -> str:
+    return (
+        sys.argv[1]
+        if len(sys.argv) > 1
+        else (os.environ.get("BOT_TOKEN_A") or os.environ.get("OPENNEWS_TELEGRAM_BOT_TOKEN") or "")
+    )
 
 async def get_updates(token):
     print(f"🔍 正在检查机器人收到的最新消息 (Token: {token[:5]}***)...")
@@ -50,6 +53,10 @@ async def get_updates(token):
         print(f"❌ 连接错误: {e}")
 
 if __name__ == "__main__":
-    # 允许从命令行传入 Token
-    token = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TOKEN
+    import os
+
+    token = _default_token()
+    if not token:
+        print("❌ 缺少 Bot Token。用法：python get_chat_id.py <BOT_TOKEN> 或设置 BOT_TOKEN_A / OPENNEWS_TELEGRAM_BOT_TOKEN")
+        raise SystemExit(2)
     asyncio.run(get_updates(token))

@@ -1,13 +1,21 @@
 import httpx
 import asyncio
+import os
+import sys
 
-# 将你的机器人 Token 填在这里，或者运行时传入
-# 示例：你可以用刚才申请的任何一个 Bot Token，因为它们都在同一个群里
-TEST_BOT_TOKEN = "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc" # Bot A
+def _get_token() -> str:
+    if len(sys.argv) > 1:
+        return sys.argv[1]
+    return os.environ.get("BOT_TOKEN_A") or os.environ.get("OPENNEWS_TELEGRAM_BOT_TOKEN") or ""
 
 async def get_updates():
-    print(f"正在查询 Bot ({TEST_BOT_TOKEN[:10]}...) 的更新...")
-    url = f"https://api.telegram.org/bot{TEST_BOT_TOKEN}/getUpdates"
+    token = _get_token()
+    if not token:
+        print("❌ 缺少 Bot Token。用法：python src/get_chat_id.py <BOT_TOKEN> 或设置 BOT_TOKEN_A / OPENNEWS_TELEGRAM_BOT_TOKEN")
+        return
+
+    print(f"正在查询 Bot ({token[:10]}...) 的更新...")
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
     
     async with httpx.AsyncClient() as client:
         try:

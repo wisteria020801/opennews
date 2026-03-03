@@ -22,8 +22,7 @@ if _CONFIG_PATH.exists():
 # ---------- API (env vars take precedence) ----------
 API_BASE_URL = os.environ.get("OPENNEWS_API_BASE") or _cfg.get("api_base_url", "https://ai.6551.io")
 WSS_URL      = os.environ.get("OPENNEWS_WSS_URL")  or _cfg.get("wss_url", "wss://ai.6551.io/open/news_wss")
-# Prioritize env var, then hardcoded value (fix for permission issue), then config.json
-API_TOKEN    = os.environ.get("OPENNEWS_TOKEN")    or "sk-wiXNrtqOmc9wgH2UCljgDzXh2rTSWA8rr9tgS0bIk1A"
+API_TOKEN    = os.environ.get("OPENNEWS_TOKEN")    or _cfg.get("api_token", "")
 
 # 检查 token 是否配置
 if not API_TOKEN:
@@ -34,8 +33,7 @@ if not API_TOKEN:
 
 # ---------- Telegram ----------
 _telegram_cfg = _cfg.get("telegram", {})
-# Prioritize env var, then hardcoded value (fix for permission issue), then config.json
-TELEGRAM_BOT_TOKEN = os.environ.get("OPENNEWS_TELEGRAM_BOT_TOKEN") or "8748507547:AAGPuJ9ShzcAoxKkSulr-i7q4zW1CCm_-GY"
+TELEGRAM_BOT_TOKEN = os.environ.get("OPENNEWS_TELEGRAM_BOT_TOKEN") or _telegram_cfg.get("bot_token", "")
 TELEGRAM_CHAT_ID   = os.environ.get("OPENNEWS_TELEGRAM_CHAT_ID")   or _telegram_cfg.get("chat_id", "")
 
 # ---------- Safety ----------

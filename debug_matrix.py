@@ -1,17 +1,32 @@
 import asyncio
 import os
+import sys
 import httpx
 
-# --- 你的配置 (从代码中提取的默认值) ---
-# 如果这些 Token 是旧的，请直接在这里修改测试！
-BOTS = [
-    {"name": "Bot A (World)", "token": "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc", "chat_id": "-1003590230315"},
-    {"name": "Bot B (Finance)", "token": "8620644736:AAEbQO4Pyd85DSnl9sWeNarvFoE_eHJi6Wc", "chat_id": "-1003590230315"},
-    {"name": "Bot C (Politics)", "token": "8796569408:AAF92dVSIpePhNah-_9oSiQrN336LeuehKY", "chat_id": "-1003590230315"},
-    {"name": "Bot D (Ent)", "token": "8761221962:AAH30LkK8w3_0MYskER1SEHOFKkKZm1gDWE", "chat_id": "-1003590230315"},
-    {"name": "Bot E (Military)", "token": "8522929670:AAEsHh99W4M_erlW5vgsymJFDlqTmJpRHSY", "chat_id": "-1003590230315"},
-    {"name": "Bot F (Oracle)", "token": "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc", "chat_id": "-1003590230315"}, # 默认复用 A
-]
+def _get_chat_id() -> str:
+    return (
+        os.environ.get("OPENNEWS_TELEGRAM_CHAT_ID")
+        or os.environ.get("CHAT_ID_A")
+        or os.environ.get("CHAT_ID_F")
+        or ""
+    )
+
+
+def _load_bots(chat_id: str) -> list[dict]:
+    specs = [
+        ("Bot A (World)", "BOT_TOKEN_A"),
+        ("Bot B (Finance)", "BOT_TOKEN_B"),
+        ("Bot C (Politics)", "BOT_TOKEN_C"),
+        ("Bot D (Ent)", "BOT_TOKEN_D"),
+        ("Bot E (Military)", "BOT_TOKEN_E"),
+        ("Bot F (Oracle)", "BOT_TOKEN_F"),
+    ]
+    bots: list[dict] = []
+    for name, env_key in specs:
+        token = os.environ.get(env_key, "")
+        if token:
+            bots.append({"name": name, "token": token, "chat_id": chat_id})
+    return bots
 
 async def test_bot(bot):
     print(f"\nTesting {bot['name']}...")
@@ -38,8 +53,18 @@ async def test_bot(bot):
 async def main():
     print("🚀 开始全矩阵连通性测试 (Debug Mode)...")
     print("此脚本不抓取新闻，仅测试机器人能否在群里说话。")
-    
-    tasks = [test_bot(bot) for bot in BOTS]
+
+    chat_id = _get_chat_id()
+    if not chat_id:
+        print("❌ 缺少 Chat ID。请设置 OPENNEWS_TELEGRAM_CHAT_ID 或 CHAT_ID_A/CHAT_ID_F。")
+        return
+
+    bots = _load_bots(chat_id)
+    if not bots:
+        print("❌ 缺少 Bot Token。请设置 BOT_TOKEN_A/B/C/D/E/F 环境变量后再运行。")
+        return
+
+    tasks = [test_bot(bot) for bot in bots]
     await asyncio.gather(*tasks)
     
     print("\n🏁 测试结束。如果你收到了消息，说明机器人是好的。")

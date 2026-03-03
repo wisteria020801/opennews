@@ -4,7 +4,7 @@
   "api_token": "",
   "max_rows": 100,
   "telegram": {
-    "bot_token": "8748507547:AAGPu9ShzcAoxKkSulr-i7q4zW1CCm_-GY",
-    "chat_id": "-1003754249990"
+    "bot_token": "",
+    "chat_id": ""
   }
 }
