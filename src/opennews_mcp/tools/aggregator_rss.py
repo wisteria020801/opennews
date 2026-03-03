@@ -50,6 +50,10 @@ SOURCES = [
     ("Xiaohongshu: Tech Trends", "https://rsshub.app/xiaohongshu/topic/tech"),
     ("Xiaohongshu: Finance", "https://rsshub.app/xiaohongshu/topic/finance"),
     ("TikTok: Crypto Trends", "https://rsshub.app/tiktok/tag/crypto"),
+    # New On-chain & Macro Data (2026 Trend)
+    ("Whale Alert (Big Transfers)", "https://rsshub.app/twitter/user/whale_alert"),
+    ("Economic Calendar (Investing.com)", "https://rsshub.app/investing/economic-calendar"),
+    ("Fed Calendar (Federal Reserve)", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
 ]
 
 KEYWORDS = re.compile(r"(SEC|ETF|listing|suspend|halt|hack|merger|liquidation|bankruptcy|court|lawsuit|approval|上市|暂停|黑客|诉讼|合并|破产|下架|批准|传闻|war|conflict|strike|election|policy|scandal|movie|star|army|navy|air force|missile|tank|drone|interest rate|fed|cpi|inflation|rates|rate hike|cut|stimulus|gdp|nfp|payroll|oil|gold|btc|eth|crypto|regulation|sanction|trade war|tariff|video|trailer|interview)", re.I)
