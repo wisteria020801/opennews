@@ -24,12 +24,12 @@ API_BASE_URL = os.environ.get("OPENNEWS_API_BASE") or _cfg.get("api_base_url", "
 WSS_URL      = os.environ.get("OPENNEWS_WSS_URL")  or _cfg.get("wss_url", "wss://ai.6551.io/open/news_wss")
 API_TOKEN    = os.environ.get("OPENNEWS_TOKEN")    or _cfg.get("api_token", "")
 
-# 检查 token 是否配置
+# 检查 token 是否配置 (RSS 模式下可选，不再强制报错)
 if not API_TOKEN:
-    raise ValueError(
-        "OPENNEWS_TOKEN 未配置。请前往 https://6551.io/mcp 申请 API Token，"
-        "然后设置环境变量 OPENNEWS_TOKEN 或在 config.json 中配置 api_token。"
-    )
+    # 兼容旧代码逻辑，给一个 dummy 值，避免导入时报错
+    # 真正的鉴权会在调用 6551 API 时进行，如果不用 6551 API 则无影响
+    API_TOKEN = "dummy_token_rss_mode"
+    # print("Warning: OPENNEWS_TOKEN 未配置，将无法使用 6551.io 数据源 (RSS 源不受影响)。")
 
 # ---------- Telegram ----------
 _telegram_cfg = _cfg.get("telegram", {})
