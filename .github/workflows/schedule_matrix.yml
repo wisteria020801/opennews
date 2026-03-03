@@ -27,17 +27,37 @@ jobs:
 
       - name: Run Bot Matrix
         env:
-          # 如果你在脚本里写死了Token，这里可以不填；但推荐用 Secrets
-          BOT_TOKEN_A: ${{ secrets.BOT_TOKEN_A }}
-          CHAT_ID_A: ${{ secrets.CHAT_ID_A }}
-          BOT_TOKEN_B: ${{ secrets.BOT_TOKEN_B }}
-          CHAT_ID_B: ${{ secrets.CHAT_ID_B }}
-          # ... 其他 Bot 配置
+          # Mapping GitHub Secrets to Script Environment Variables
+          # Bot A (World) -> WORLDNEWSBOTTOKEN
+          BOT_TOKEN_A: ${{ secrets.WORLDNEWSBOTTOKEN }}
+          CHAT_ID_A: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+          
+          # Bot B (Finance) -> FINANCEBOTTOKEN
+          BOT_TOKEN_B: ${{ secrets.FINANCEBOTTOKEN }}
+          CHAT_ID_B: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+          
+          # Bot C (Politics) -> POLITICSBOTTOKEN
+          BOT_TOKEN_C: ${{ secrets.POLITICSBOTTOKEN }}
+          CHAT_ID_C: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+          
+          # Bot D (Entertainment) -> ENTERTAINMENTBOTTOKEN
+          BOT_TOKEN_D: ${{ secrets.ENTERTAINMENTBOTTOKEN }}
+          CHAT_ID_D: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+          
+          # Bot E (Military) -> MILLITARYBOTTOKEN
+          BOT_TOKEN_E: ${{ secrets.MILLITARYBOTTOKEN }}
+          CHAT_ID_E: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+
+          # Bot F (Oracle) -> Reusing Bot A or dedicated if available
+          BOT_TOKEN_F: ${{ secrets.WORLDNEWSBOTTOKEN }}
+          CHAT_ID_F: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
         run: |
           # 确保 PYTHONPATH 包含项目根目录
           export PYTHONPATH=$PYTHONPATH:$(pwd)
           
-          # Step 1: Run Matrix Bots (A-D)
+          # Step 1: Run Matrix Bots (A-E)
           python src/run_multibot_matrix.py
           
           # Step 2: Run Oracle (Bot F)
