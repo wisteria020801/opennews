@@ -73,6 +73,10 @@ async def run_matrix():
             print(f"⚠️  Skipping: Missing token or chat_id for {bot_config['name']}")
             print(f"   (Please set environment variables or edit this script)")
             continue
+        
+        # Debug: Print Token Masked
+        masked_token = bot_config["bot_token"][:4] + "***" + bot_config["bot_token"][-4:]
+        print(f"   🔑 Using Token: {masked_token} | Chat ID: {bot_config['chat_id']}")
 
         try:
             result = await aggregate_free_news(
