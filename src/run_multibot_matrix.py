@@ -24,35 +24,35 @@ BOT_MATRIX = [
         "name": "🌍 Alpha-Sentry (哨兵) | 全球突发",
         "category": "world",
         "bot_token": os.environ.get("BOT_TOKEN_A", "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc"), 
-        "chat_id": os.environ.get("CHAT_ID_A", "-1003590230315"),
+        "chat_id": "-1003590230315", # Force correct ID (ignore env var for now to fix GitHub Secret mismatch)
         "enabled": True
     },
     {
         "name": "💹 Beta-Tracker (追踪) | 金融异动",
         "category": "finance",
         "bot_token": os.environ.get("BOT_TOKEN_B", "8620644736:AAEbQO4Pyd85DSnl9sWeNarvFoE_eHJi6Wc"),
-        "chat_id": os.environ.get("CHAT_ID_B", "-1003590230315"),
+        "chat_id": "-1003590230315",
         "enabled": True
     },
     {
         "name": "🏛️ Charlie-Watch (守望) | 政治博弈",
         "category": "politics",
         "bot_token": os.environ.get("BOT_TOKEN_C", "8796569408:AAF92dVSIpePhNah-_9oSiQrN336LeuehKY"),
-        "chat_id": os.environ.get("CHAT_ID_C", "-1003590230315"),
+        "chat_id": "-1003590230315",
         "enabled": True
     },
     {
         "name": "📡 Delta-Radar (雷达) | 娱乐/舆情",
         "category": "entertainment",
         "bot_token": os.environ.get("BOT_TOKEN_D", "8761221962:AAH30LkK8w3_0MYskER1SEHOFKkKZm1gDWE"),
-        "chat_id": os.environ.get("CHAT_ID_D", "-1003590230315"),
+        "chat_id": "-1003590230315",
         "enabled": True
     },
     {
         "name": "⚔️ Echo-WarRoom (战情) | 军事冲突",
         "category": "military",
         "bot_token": os.environ.get("BOT_TOKEN_E", "8522929670:AAEsHh99W4M_erlW5vgsymJFDlqTmJpRHSY"),
-        "chat_id": os.environ.get("CHAT_ID_E", "-1003590230315"),
+        "chat_id": "-1003590230315",
         "enabled": True
     },
 ]
