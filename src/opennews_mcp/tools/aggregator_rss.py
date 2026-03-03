@@ -239,12 +239,10 @@ def _filter(items: list[dict], max_items: int) -> list[dict]:
     return out[:max_items]
 
 
-async def _send_telegram(lines: list[str], category: str = "all") -> str:
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID or not lines:
+async def _send_telegram(lines: list[str], category: str = "all", bot_token: str = None, chat_id: str = None) -> str:
+    """发送消息到 Telegram Bot"""
+    if not lines:
         return "skip"
-    
-    bot_token = TELEGRAM_BOT_TOKEN
-    chat_id = TELEGRAM_CHAT_ID
     
     # 装饰 Header
     headers = {
@@ -262,10 +260,17 @@ async def _send_telegram(lines: list[str], category: str = "all") -> str:
     msg_body = f"{header}\n━━━━━━━━━━━━━━━━━━\n" + "\n".join(lines) + "\n━━━━━━━━━━━━━━━━━━\n_Powered by Wisteria_"
     
     async with httpx.AsyncClient(timeout=15.0) as c:
+        # Use provided bot_token/chat_id if available, else use global
+        target_token = bot_token or TELEGRAM_BOT_TOKEN
+        target_chat = chat_id or TELEGRAM_CHAT_ID
+        
+        # Ensure chat_id is integer-like if possible (but Telegram API accepts string for channel username @channel)
+        # If it's a private/group ID (e.g. "-100..."), ensure it's a string or int.
+        
         r = await c.post(
-            f"https://api.telegram.org/bot{bot_token}/sendMessage",
+            f"https://api.telegram.org/bot{target_token}/sendMessage",
             json={
-                "chat_id": chat_id, 
+                "chat_id": target_chat, 
                 "text": msg_body, 
                 "parse_mode": "Markdown", # 启用 Markdown 美化
                 "disable_web_page_preview": True
@@ -275,7 +280,7 @@ async def _send_telegram(lines: list[str], category: str = "all") -> str:
             r.raise_for_status()
             return "ok"
         except Exception as e:
-            return f"error:{e}"
+            return f"error:{e} (Response: {r.text})"
 
 
 @mcp.tool()
@@ -348,20 +353,11 @@ async def aggregate_free_news(
     status = None
     if send_to_telegram:
         # 临时覆盖全局配置 (如果传入了特定参数)
-        global TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID
-        original_token = TELEGRAM_BOT_TOKEN
-        original_chat = TELEGRAM_CHAT_ID
+        # Note: We now pass token/chat_id directly to _send_telegram via a modified signature or globals
+        # But _send_telegram uses global variables by default. 
+        # Let's refactor _send_telegram to accept arguments to avoid global state issues.
         
-        if bot_token:
-            TELEGRAM_BOT_TOKEN = bot_token
-        if chat_id:
-            TELEGRAM_CHAT_ID = chat_id
-            
-        status = await _send_telegram(lines, category=category)
-        
-        # 恢复
-        TELEGRAM_BOT_TOKEN = original_token
-        TELEGRAM_CHAT_ID = original_chat
+        status = await _send_telegram(lines, category=category, bot_token=bot_token, chat_id=chat_id)
 
     return {
         "success": True,
