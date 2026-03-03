@@ -223,18 +223,36 @@ async def _fetch(client: httpx.AsyncClient, name: str, url: str) -> list[dict]:
 def _filter(items: list[dict], max_items: int) -> list[dict]:
     seen = set()
     out = []
+    # 宽松的时间窗口：只看过去 24 小时内的新闻，避免挖坟
+    # Strict 20-min window is too risky for RSS delays. 24h is safer, rely on seen/dedup logic.
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    
     for it in items:
         title = it.get("title", "")
         link = it.get("link", "")
+        pub_time = it.get("time")
+        
+        # 1. 基础字段检查
         if not title:
             continue
+            
+        # 2. 关键词过滤 (Keywords)
         if not KEYWORDS.search(title):
             continue
+            
+        # 3. 时间过滤 (Time Window)
+        # 如果 RSS 没有时间，默认认为是新的 (_parse_time 会返回 now)
+        # 如果有时间，丢弃 24 小时以前的旧闻
+        if pub_time and pub_time < cutoff:
+            continue
+
+        # 4. 去重 (Deduplication)
         key = (title.lower(), link[:80])
         if key in seen:
             continue
         seen.add(key)
         out.append(it)
+        
     out.sort(key=lambda x: (_rank(x.get("source", "")), -x["time"].timestamp()))
     return out[:max_items]
 
