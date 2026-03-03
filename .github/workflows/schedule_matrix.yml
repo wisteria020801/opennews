@@ -1,11 +1,11 @@
 name: Multi-Bot News Matrix
 
 on:
+  push:
+    branches: [ "main" ]
   schedule:
-    # 极速套利模式 (High-Frequency Arbitrage)
-    # 频率: 每20分钟运行一次 (*/20)
-    # 消耗: 每月约 1500 分钟 (2000分钟免费额度内)
-    - cron: '*/20 * * * *'
+    # 避开整点拥堵，改为每小时的 15, 35, 55 分运行 (每20分钟)
+    - cron: '15,35,55 * * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
