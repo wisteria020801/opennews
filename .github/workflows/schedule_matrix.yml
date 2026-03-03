@@ -4,8 +4,9 @@ on:
   push:
     branches: [ "main" ]
   schedule:
-    # 避开整点拥堵，改为每小时的 15, 35, 55 分运行 (每20分钟)
-    - cron: '15,35,55 * * * *'
+    # 改为每 2 小时运行一次 (整点)
+    # 频率: 0 0, 0 2, 0 4 ... (UTC)
+    - cron: '0 */2 * * *'
   workflow_dispatch:  # 允许手动触发
 
 jobs:
