@@ -150,7 +150,23 @@ async def run_oracle():
     report_lines.append(ai_insight)
     report_lines.append("\n━━━━━━━━━━━━━━━━━━\n_Powered by Wisteria_")
     
-    # 4. Send via Bot
+    # 4. Save for Dashboard (TMA)
+    # ------------------------------------------------------------------
+    try:
+        data_dir = current_dir.parent / "data"
+        data_dir.mkdir(exist_ok=True)
+        report_data = {
+            "timestamp": datetime.now().isoformat(),
+            "insight": ai_insight,
+            "top_news": [item.get("title") for item in all_items[:5]]
+        }
+        with open(data_dir / "latest_report.json", "w", encoding="utf-8") as f:
+            json.dump(report_data, f, ensure_ascii=False, indent=2)
+        print("✅ Report saved to data/latest_report.json for Dashboard")
+    except Exception as e:
+        print(f"⚠️ Failed to save dashboard data: {e}")
+
+    # 5. Send via Bot
     msg_body = "\n".join(report_lines)
     
     async with httpx.AsyncClient() as client:
