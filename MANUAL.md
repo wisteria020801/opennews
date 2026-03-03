@@ -34,8 +34,11 @@
     *   **职责**: 政治博弈、政策法规。
     *   **源**: Politico, Fox, SEC.
 4.  **📡 Delta-Radar (雷达)**
-    *   **职责**: 娱乐、舆情、社交热度。
-    *   **源**: Variety, TMZ, YouTube, Weibo Hot.
+    *   **职责**: 娱乐、舆情、社交热度、流媒体趋势。
+    *   **源**: 
+        *   **娱乐**: Variety, TMZ, E! Online.
+        *   **社交**: Twitter (Elon Musk), Weibo Hot Search.
+        *   **流媒体**: YouTube (Bloomberg/CNBC), Xiaohongshu (Tech/Finance), TikTok (Crypto).
 5.  **⚔️ Echo-WarRoom (战情)**
     *   **职责**: 军事冲突、防务动态。
     *   **源**: Defence Blog, Military.com.
@@ -78,6 +81,17 @@ A: 不要改代码！去 GitHub 仓库的 **Settings -> Secrets -> Actions** 里
 
 ---
 
-## 🔒 5. 安全提醒
-*   你的 Gemini API Key 已内置在代码中以便云端运行。
-*   如果觉得 Key 有泄漏风险，请去 Google AI Studio 重新生成一个，并在 GitHub Secrets 里添加 `GEMINI_API_KEY` 来覆盖默认值。
+## 🔑 6. API 密钥指南 (API Keys)
+
+为了确保系统的长期运行，建议你申请自己的 API Key（虽然目前大部分已内置默认值或使用公开接口）。
+
+| 服务名称 | 状态 | 价格 | 申请地址 | 用途 |
+| :--- | :--- | :--- | :--- | :--- |
+| **Google Gemini API** | ✅ **已内置** (默认) | 免费 (Free Tier) | [Google AI Studio](https://aistudio.google.com/app/apikey) | 驱动先知 (Oracle) 的 AI 分析大脑。 |
+| **RSSHub** | ✅ **无需 Key** | 免费 (公共) | [RSSHub 官网](https://docs.rsshub.app/) | 抓取 Twitter/微博/小红书/TikTok 数据。 |
+| **Helius** | 🚧 *规划中* | 免费 (ShredStream) | [Helius.xyz](https://www.helius.xyz/) | 未来用于 Solana 链上极速监控。 |
+| **Marketstack** | 🚧 *规划中* | 免费 (有限额度) | [Marketstack](https://marketstack.com/) | 未来用于全球股指实时查询。 |
+
+**如何配置自己的 Key?**
+进入 GitHub 仓库 -> **Settings** -> **Secrets and variables** -> **Actions**，添加同名 Secret (如 `GEMINI_API_KEY`) 即可覆盖默认设置。
+
