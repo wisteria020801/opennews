@@ -1,0 +1,55 @@
+import asyncio
+import httpx
+import sys
+
+# 默认使用 Bot A (World) 的 Token，因为它通常是第一个进群的
+# 如果这个 Token 也是新的，请手动替换
+DEFAULT_TOKEN = "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc"
+
+async def get_updates(token):
+    print(f"🔍 正在检查机器人收到的最新消息 (Token: {token[:5]}***)...")
+    url = f"https://api.telegram.org/bot{token}/getUpdates"
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url)
+            data = resp.json()
+            
+            if not data.get("ok"):
+                print(f"❌ 请求失败: {data}")
+                return
+
+            results = data.get("result", [])
+            if not results:
+                print("⚠️  没有收到任何新消息。")
+                print("💡 请现在往群里发一句话（比如 'test'），然后立刻重新运行此脚本！")
+                return
+
+            print(f"\n✅ 成功获取 {len(results)} 条消息。正在解析群 ID...")
+            print("-" * 40)
+            
+            found_groups = set()
+            for update in results:
+                # 检查群消息
+                if "message" in update and "chat" in update["message"]:
+                    chat = update["message"]["chat"]
+                    if chat["type"] in ["group", "supergroup", "channel"]:
+                        chat_id = chat["id"]
+                        title = chat.get("title", "No Title")
+                        if chat_id not in found_groups:
+                            print(f"🎯 发现群组: {title}")
+                            print(f"🆔 Chat ID: {chat_id}")
+                            print("-" * 40)
+                            found_groups.add(chat_id)
+            
+            if not found_groups:
+                print("⚠️  收到了消息，但似乎都是私聊 (Private)，没看到群消息。")
+                print("💡 请确保机器人已经被拉进群，并且你在群里发了言。")
+
+    except Exception as e:
+        print(f"❌ 连接错误: {e}")
+
+if __name__ == "__main__":
+    # 允许从命令行传入 Token
+    token = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_TOKEN
+    asyncio.run(get_updates(token))

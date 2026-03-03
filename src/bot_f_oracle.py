@@ -20,7 +20,7 @@ except ImportError:
 # Strategy: Reuse Bot A's token if a dedicated Oracle token is not provided.
 # This implements the "5+1" architecture where the 6th bot (Oracle) runs sequentially.
 BOT_TOKEN_ORACLE = os.environ.get("BOT_TOKEN_F", "8779113331:AAFcreicqAYw3o1kpXuM0tg18_M9OK5BwYc")
-CHAT_ID = os.environ.get("CHAT_ID_F", "-1002490641199") # Use the correct group ID (same as others)
+CHAT_ID = os.environ.get("CHAT_ID_F", "-1003590230315") # Use the correct group ID (same as others)
 
 async def run_oracle():
     print("🔮 Foxtrot-Oracle (先知) is waking up...")
