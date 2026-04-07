@@ -46,17 +46,70 @@ SOURCES = [
     ("YouTube: CNBC", "https://rsshub.app/youtube/channel/UCvJJ_dzjViJCoLf5uK9txAw"),
     ("Twitter: Elon Musk (via RSSHub)", "https://rsshub.app/twitter/user/elonmusk"),
     ("Weibo: Hot Search (via RSSHub)", "https://rsshub.app/weibo/search/hot"),
-    # New Streaming Sources (2026 Trend)
     ("Xiaohongshu: Tech Trends", "https://rsshub.app/xiaohongshu/topic/tech"),
     ("Xiaohongshu: Finance", "https://rsshub.app/xiaohongshu/topic/finance"),
     ("TikTok: Crypto Trends", "https://rsshub.app/tiktok/tag/crypto"),
-    # New On-chain & Macro Data (2026 Trend)
     ("Whale Alert (Big Transfers)", "https://rsshub.app/twitter/user/whale_alert"),
     ("Economic Calendar (Investing.com)", "https://rsshub.app/investing/economic-calendar"),
     ("Fed Calendar (Federal Reserve)", "https://www.federalreserve.gov/feeds/press_monetary.xml"),
+
+    # === AI & Technology (NEW — v2.1) ===
+    # Tier 1: Core AI Media
+    ("MIT Technology Review", "https://www.technologyreview.com/feed/"),
+    ("Ars Technica", "https://feeds.arstechnica.com/arstechnica/technology-lab"),
+    ("VentureBeat (AI)", "https://venturebeat.com/category/ai/feed/"),
+    ("TechCrunch (AI)", "https://techcrunch.com/category/artificial-intelligence/feed/"),
+    ("The Verge", "https://www.theverge.com/rss/index.xml"),
+    ("Wired", "https://www.wired.com/feed/rss"),
+    
+    # Tier 2: AI Labs & Research (Fixed URLs)
+    ("OpenAI News", "https://openai.com/news/rss.xml"),
+    ("DeepMind Blog", "https://deepmind.google/blog/rss.xml"),
+    ("Google Research Blog", "https://blog.google/technology/ai/rss/"),
+    ("Hugging Face Blog", "https://huggingface.co/blog/feed.xml"),
+    
+    # Tier 3: Specialized AI/Data Science
+    ("KDnuggets (AI/ML)", "https://www.kdnuggets.com/feed"),
+    ("MIT Tech Review (AI Topic)", "https://www.technologyreview.com/topic/artificial-intelligence/feed"),
+    ("BAIR Blog (Berkeley AI)", "https://bair.berkeley.edu/blog/feed.xml"),
+
+    # Tier 4: AI Newsletters & Curated (High Signal — v2.1)
+    ("The Decoder (AI)", "https://the-decoder.com/feed/"),
+    ("Ben's Bites (AI)", "https://bensbites.com/feed"),
+    
+    # Tier 5: Research & Academic (Gold Standard)
+    ("arXiv CS.AI (Papers)", "https://rss.arxiv.org/rss/cs.AI"),
+    ("MIRI Blog (AI Safety)", "https://intelligence.org/feed"),
+    
+    # Tier 6: Cloud/Enterprise AI
+    ("AWS Machine Learning Blog", "https://aws.amazon.com/blogs/machine-learning/feed/"),
+    ("Google Cloud AI Blog", "https://cloud.google.com/blog/ai-and-machine-learning/rss"),
 ]
 
-KEYWORDS = re.compile(r"(SEC|ETF|listing|suspend|halt|hack|merger|liquidation|bankruptcy|court|lawsuit|approval|上市|暂停|黑客|诉讼|合并|破产|下架|批准|传闻|war|conflict|strike|election|policy|scandal|movie|star|army|navy|air force|missile|tank|drone|interest rate|fed|cpi|inflation|rates|rate hike|cut|stimulus|gdp|nfp|payroll|oil|gold|btc|eth|crypto|regulation|sanction|trade war|tariff|video|trailer|interview)", re.I)
+KEYWORDS = re.compile(r"(SEC|ETF|listing|suspend|halt|hack|merger|liquidation|bankruptcy|court|lawsuit|approval|上市|暂停|黑客|诉讼|合并|破产|下架|批准|传闻|war|conflict|strike|election|policy|scandal|movie|star|army|navy|air force|missile|tank|drone|interest rate|fed|cpi|inflation|rates|rate hike|cut|stimulus|gdp|nfp|payroll|oil|gold|btc|eth|crypto|regulation|sanction|trade war|tariff|video|trailer|interview|AI|artificial intelligence|LLM|GPT|Claude|Gemini|OpenAI|Anthropic|DeepMind|Google AI|model release|API|agent|MCP|machine learning|neural network|transformer|diffusion|training|inference|GPU|chip|semiconductor|NVIDIA|open source|framework|fine-tune|RAG|embedding|benchmark|SOTA|AGI|safety|alignment|regulation|AI act|chip act|data center|compute|scaling|reasoning|multimodal|vision|NLP|robotics|autonomous|开源|大模型|人工智能|芯片|算力|推理|训练)", re.I)
+
+TECH_KEYWORDS = re.compile(
+    r"(AI|artificial intelligence|GPT|Claude|Gemini|Llama|Qwen|Mistral|DeepSeek|"
+    r"LLM|large language model|multimodal|vision language|text-to-image|image generation|"
+    r"diffusion model|transformer|attention mechanism|neural network|deep learning|"
+    r"machine learning|ML|reinforcement learning|RLHF|RLAIF|supervised fine.tuning|SFT|"
+    r"training|inference|token|context window|parameters|weights|architecture|"
+    r"OpenAI|Anthropic|Google DeepMind|Meta AI|Microsoft AI|xAI|Mistral AI|"
+    r"Hugging Face|LangChain|LlamaIndex|PyTorch|TensorFlow|JAX|ONNX|"
+    r"GPU|NVIDIA|AMD|TPU|chip|semiconductor|TSMC|data center|compute|"
+    r"agent|autonomous agent|MCP|tool use|function calling|RAG|retrieval|"
+    r"embedding|vector database|knowledge graph|prompt engineering|chain-of-thought|"
+    r"benchmark|evaluation|SOTA|state.of.the.art|leaderboard|arena|"
+    r"open source|foundation model|fine.tune|quantization|distillation|pruning|"
+    r"AGI|general intelligence|alignment|safety|red.teaming|guardrail|"
+    r"robotics|self.driving|computer vision|NLP|speech recognition|"
+    r"code generation|Copilot|Cursor|IDE|developer tool|"
+    r"startup|funding|series.|valuation|IPO|acquisition|unicorn|"
+    r"research paper|arXiv|conference|NeurIPS|ICML|ICLR|CVPR|ACL|EMNLP|"
+    r"开源|大模型|人工智能|机器学习|深度学习|神经网络|芯片|算力|推理|训练|"
+    r"生成式|多模态|智能体|自动驾驶|计算机视觉|自然语言处理)",
+    re.I
+)
 
 PRIORITY = {
     "Wallstreetcn": 1,
@@ -67,6 +120,21 @@ PRIORITY = {
     "Foresight News": 1,
     "Investing.com": 1,
     "Yahoo Finance": 1,
+    "OpenAI": 1,
+    "DeepMind": 1,
+    "Anthropic": 1,
+    "Google Research": 1,
+    "MIT Technology Review": 1,
+    "The Decoder": 1,
+    "Hugging Face": 1,
+    "TechCrunch": 1,
+    "Ars Technica": 1,
+    "VentureBeat": 1,
+    "Ben's Bites": 1,
+    "arXiv": 1,
+    "AWS": 1,
+    "Google Cloud": 1,
+    "MIRI": 2,
     "CNN World": 2,
     "Al Jazeera": 2,
     "CoinDesk": 2,
@@ -75,11 +143,16 @@ PRIORITY = {
     "Defense One": 2,
     "Defence Blog": 2,
     "Military.com": 2,
-    "YouTube": 2, # High priority for video content
+    "YouTube": 2,
     "Twitter": 2,
     "Variety": 2,
     "TMZ": 2,
     "E! Online": 3,
+    "The Verge": 2,
+    "Wired": 2,
+    "KDnuggets": 2,
+    "BAIR": 2,
+    "Papers with Code": 2,
 }
 
 
@@ -90,6 +163,120 @@ def _rank(src: str) -> int:
         if k.lower() in src.lower():
             return v
     return 8
+
+
+HIGH_WEIGHT_ENTITIES = {
+    "BTC", "BITCOIN", "ETH", "ETHEREUM", "SOL", "SOLANA",
+    "BNB", "BINANCE", "COINBASE", "USDT", "USDC", "TETHER",
+    "SEC", "CFTC", "FED", "FEDERAL RESERVE", "ECB", "BOJ", "PBOC",
+    "CPI", "NFP", "NONFARM", "GDP", "INFLATION", "INTEREST RATE",
+    "FOMC", "RATE HIKE", "RATE CUT", "QT", "QE",
+    "UKRAINE", "RUSSIA", "IRAN", "ISRAEL", "GAZA", "CHINA", "TAIWAN",
+    "TRUMP", "BIDEN", "PUTIN", "XI", "NETANYAHU",
+    "OPENAI", "GOOGLE", "META", "APPLE", "MICROSOFT", "NVIDIA",
+    "MCP", "LLM", "GPT", "GEMINI", "CLAUDE", "ANTHROPIC",
+    "ETF", "IPO", "MERGER", "ACQUISITION", "BANKRUPTCY", "LIQUIDATION",
+    "AI", "ARTIFICIAL INTELLIGENCE", "AGI", "LLM", "TRANSFORMER",
+    "DEEPMIND", "HUGGING FACE", "LANGCHAIN", "PYTORCH", "TENSORFLOW",
+}
+
+
+def _extract_entities(title: str) -> set[str]:
+    found = set()
+    for entity in HIGH_WEIGHT_ENTITIES:
+        if entity in title.upper():
+            found.add(entity)
+    return found
+
+
+def _tokenize(text: str) -> set[str]:
+    import re
+    english = set(re.findall(r'[a-zA-Z]{2,}', text.lower()))
+    chinese = set(text[i:i+2] for i in range(len(text)-1) if '\u4e00' <= text[i] <= '\u9fff')
+    return english | chinese
+
+
+def _jaccard(set_a: set, set_b: set) -> float:
+    if not set_a or not set_b:
+        return 0.0
+    return len(set_a & set_b) / len(set_a | set_b)
+
+
+def _mark_resonant(item_a: dict, item_b: dict):
+    item_a["resonance_count"] += 1
+    item_b["resonance_count"] += 1
+    item_a["co_sources"].append(item_b.get("source", ""))
+    item_b["co_sources"].append(item_a.get("source", ""))
+
+
+def _entity_resonance(items: list[dict], time_window_minutes: int = 30) -> list[dict]:
+    n = len(items)
+    for i in range(n):
+        items[i]["resonance_count"] = 1
+        items[i]["co_sources"] = []
+        entities_i = _extract_entities(items[i].get("title", ""))
+        time_i = items[i].get("time")
+        
+        for j in range(i + 1, n):
+            entities_j = _extract_entities(items[j].get("title", ""))
+            time_j = items[j].get("time")
+            
+            shared = entities_i & entities_j
+            if len(shared) >= 2:
+                if time_i and time_j:
+                    delta = abs((time_i - time_j).total_seconds()) / 60
+                    if delta <= time_window_minutes:
+                        _mark_resonant(items[i], items[j])
+                else:
+                    _mark_resonant(items[i], items[j])
+    
+    return items
+
+
+def detect_resonance(items: list[dict],
+                     threshold: float = 0.4,
+                     use_entity_first: bool = True) -> list[dict]:
+    if use_entity_first:
+        items = _entity_resonance(items)
+    
+    n = len(items)
+    for i in range(n):
+        title_a = _tokenize(items[i]["title"])
+        
+        for j in range(i + 1, n):
+            source_b = items[j].get("source", "")
+            if source_b in items[i].get("co_sources", []):
+                continue
+            
+            if (items[i].get("link") and items[i]["link"] == items[j].get("link")):
+                _mark_resonant(items[i], items[j])
+                continue
+            
+            title_b = _tokenize(items[j]["title"])
+            sim = _jaccard(title_a, title_b)
+            if sim >= threshold:
+                _mark_resonant(items[i], items[j])
+    
+    return items
+
+
+def calc_timeliness(pub_time: datetime, now: datetime = None) -> float:
+    if now is None:
+        now = datetime.now(timezone.utc)
+    delta_minutes = (now - pub_time).total_seconds() / 60
+    
+    if delta_minutes <= 30:   return 10.0
+    elif delta_minutes <= 120: return 9.0
+    elif delta_minutes <= 360: return 7.0
+    elif delta_minutes <= 720: return 5.0
+    elif delta_minutes <= 1440: return 3.0
+    else: return 0.0
+
+
+def calc_prominence(source: str, resonance_count: int) -> float:
+    base_score = {1: 8.0, 2: 5.0, 3: 3.0}.get(_rank(source), 2.0)
+    resonance_bonus = min((resonance_count - 1) * 1.5, 2.0)
+    return min(base_score + resonance_bonus, 10.0)
 
 
 def _parse_time(ts: str) -> datetime:
@@ -220,38 +407,42 @@ async def _fetch(client: httpx.AsyncClient, name: str, url: str) -> list[dict]:
         return []
 
 
-def _filter(items: list[dict], max_items: int) -> list[dict]:
+def _filter(items: list[dict], max_items: int, enable_resonance: bool = True, category: str = None) -> list[dict]:
+    keyword_pattern = TECH_KEYWORDS if category == "tech" else KEYWORDS
     seen = set()
     out = []
-    # 宽松的时间窗口：只看过去 24 小时内的新闻，避免挖坟
-    # Strict 20-min window is too risky for RSS delays. 24h is safer, rely on seen/dedup logic.
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+    cutoff_hours = 48 if category == "tech" else 24
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=cutoff_hours)
     
     for it in items:
         title = it.get("title", "")
         link = it.get("link", "")
         pub_time = it.get("time")
         
-        # 1. 基础字段检查
         if not title:
             continue
             
-        # 2. 关键词过滤 (Keywords)
-        if not KEYWORDS.search(title):
+        if not keyword_pattern.search(title):
             continue
             
-        # 3. 时间过滤 (Time Window)
-        # 如果 RSS 没有时间，默认认为是新的 (_parse_time 会返回 now)
-        # 如果有时间，丢弃 24 小时以前的旧闻
         if pub_time and pub_time < cutoff:
             continue
 
-        # 4. 去重 (Deduplication)
         key = (title.lower(), link[:80])
         if key in seen:
             continue
         seen.add(key)
+        
+        it["resonance_count"] = 1
+        it["co_sources"] = []
+        it["raw_timeliness"] = calc_timeliness(pub_time) if pub_time else 10.0
         out.append(it)
+        
+    if enable_resonance and len(out) > 1:
+        out = detect_resonance(out)
+    
+    for it in out:
+        it["raw_prominence"] = calc_prominence(it.get("source", ""), it.get("resonance_count", 1))
         
     out.sort(key=lambda x: (_rank(x.get("source", "")), -x["time"].timestamp()))
     return out[:max_items]
@@ -320,30 +511,30 @@ async def aggregate_free_news(
         bot_token: 可选，指定发送用的 Bot Token (覆盖默认)
         chat_id: 可选，指定发送用的 Chat ID (覆盖默认)
     """
-    # 1. 根据 category 筛选源
+    # 1. 根据 category 筛选源 (v2.1 — 新增AI科技源)
     selected_sources = []
+    STRICT_CATEGORIES = {"tech", "finance", "world", "politics", "entertainment", "military"}
+    
     for name, url in SOURCES:
-        # 简单分类逻辑 (可根据实际需求细化)
         if category == "all":
             selected_sources.append((name, url))
-        elif category == "finance" and name in ["SEC", "CFTC", "Reuters", "WSJ", "Financial Times", "Bloomberg", "Yahoo Finance", "Investing.com", "The Block", "Foresight News", "CoinDesk"]:
+        elif category == "finance" and any(k in name for k in ["Wallstreetcn", "Jin10", "Investing", "Yahoo Finance", "The Block", "Foresight", "CoinDesk", "Cointelegraph", "Coinbase", "Kraken", "CoinGecko", "CFTC", "SEC", "Reuters Business", "Whale Alert"]):
             selected_sources.append((name, url))
-        elif category == "tech" and name in ["CoinDesk", "The Block", "TechCrunch", "Foresight News"]: # 示例
+        elif category == "tech" and any(k in name for k in ["MIT Technology", "Ars Technica", "VentureBeat", "TechCrunch", "The Verge", "Wired", "OpenAI", "DeepMind", "Google Research", "Hugging Face", "KDnuggets", "BAIR", "The Decoder", "Ben's Bites", "arXiv", "MIRI", "AWS", "Google Cloud"]):
             selected_sources.append((name, url))
-        elif category == "world" and name in ["Reuters", "BBC World", "BBC Politics", "CNN World", "Al Jazeera", "Reuters World"]: 
+        elif category == "world" and any(k in name for k in ["Reuters World", "AP News", "CNN World", "Al Jazeera", "Politico", "Fox News"]): 
             selected_sources.append((name, url))
-        elif category == "politics" and name in ["BBC Politics", "Reuters", "Politico", "Fox News Politics"]:
+        elif category == "politics" and any(k in name for k in ["Politico", "Fox News", "CNN World", "Al Jazeera"]):
             selected_sources.append((name, url))
-        elif category == "entertainment" and name in ["Variety", "E! Online", "TMZ", "YouTube: Bloomberg", "YouTube: CNBC", "Twitter: Elon Musk (Demo)"]:
+        elif category == "entertainment" and any(k in name for k in ["Variety", "E! Online", "TMZ", "YouTube:", "Twitter:", "Weibo:", "Xiaohongshu:", "TikTok:"]):
             selected_sources.append((name, url))
-        elif category == "military" and name in ["Defence Blog", "Military.com", "Defense One"]:
+        elif category == "military" and any(k in name for k in ["Defence Blog", "Military.com", "Defense One"]):
             selected_sources.append((name, url))
-        # 默认回落到 crypto 相关源
-        elif category not in ["all", "finance", "tech", "world", "politics", "entertainment", "military"] and name in ["CoinDesk", "Cointelegraph", "Coinbase"]:
+        elif category not in STRICT_CATEGORIES:
              selected_sources.append((name, url))
 
-    if not selected_sources and category != "all":
-        # 如果分类筛选后为空，默认用全量，或者针对 crypto 优化
+    if not selected_sources and category in STRICT_CATEGORIES:
+        print(f"[WARN] No sources matched for category='{category}', using all sources as fallback")
         selected_sources = SOURCES
 
     async with httpx.AsyncClient() as client:
@@ -354,16 +545,21 @@ async def aggregate_free_news(
     for arr in results:
         items.extend(arr)
     
-    picked = _filter(items, max_items)
+    picked = _filter(items, max_items, category=category)
     lines = []
     for it in picked:
         tstr = it["time"].astimezone(timezone(timedelta(hours=8))).strftime("%H:%M")
         src = it.get("source", "")
         title = it.get("title", "").replace("[", "(").replace("]", ")").replace("*", "") # 简单的Markdown转义
         link = it.get("link", "")
+        res_count = it.get("resonance_count", 1)
+        co_srcs = it.get("co_sources", [])
         
-        # 美化每一行
-        line = f"⏰ `{tstr}` | *{src}*\n{title}"
+        line = f"⏰ `{tstr}` | *{src}*"
+        if res_count > 1:
+            co_str = ", ".join(co_srcs[:3])
+            line += f" 🔥×{res_count} ({co_str})"
+        line += f"\n{title}"
         if link:
             line += f"\n[🔗 点击阅读]({link})"
         lines.append(line + "\n")
@@ -388,6 +584,10 @@ async def aggregate_free_news(
                 "source": it["source"],
                 "time": it["time"].isoformat(),
                 "rank": _rank(it["source"]),
+                "resonance_count": it.get("resonance_count", 1),
+                "co_sources": it.get("co_sources", []),
+                "raw_timeliness": round(it.get("raw_timeliness", 0), 1),
+                "raw_prominence": round(it.get("raw_prominence", 0), 1),
             }
             for it in picked
         ],

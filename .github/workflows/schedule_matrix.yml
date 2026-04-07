@@ -54,6 +54,10 @@ jobs:
           CHAT_ID_F: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
 
+          # Bot G (Tech Radar) — NEW v2.1
+          BOT_TOKEN_G: ${{ secrets.TECHBOTTOKEN }}
+          CHAT_ID_G: ${{ secrets.OPENNEWS_TELEGRAM_CHAT_ID }}
+
         run: |
           # 确保 PYTHONPATH 包含项目根目录
           export PYTHONPATH=$PYTHONPATH:$(pwd)

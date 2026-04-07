@@ -55,6 +55,13 @@ BOT_MATRIX = [
         "chat_id": os.environ.get("CHAT_ID_E", "-1003590230315"),
         "enabled": True
     },
+    {
+        "name": "🤖 Foxtrot-Tech (科技雷达) | AI/技术前沿",
+        "category": "tech",
+        "bot_token": os.environ.get("BOT_TOKEN_G"),
+        "chat_id": os.environ.get("CHAT_ID_G", "-1003590230315"),
+        "enabled": True
+    },
 ]
 
 async def run_matrix():
