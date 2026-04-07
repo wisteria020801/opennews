@@ -224,8 +224,15 @@ def _entity_resonance(items: list[dict], time_window_minutes: int = 30) -> list[
             shared = entities_i & entities_j
             if len(shared) >= 2:
                 if time_i and time_j:
-                    delta = abs((time_i - time_j).total_seconds()) / 60
-                    if delta <= time_window_minutes:
+                    try:
+                        if isinstance(time_i, str):
+                            time_i = _parse_time(time_i)
+                        if isinstance(time_j, str):
+                            time_j = _parse_time(time_j)
+                        delta = abs((time_i - time_j).total_seconds()) / 60
+                        if delta <= time_window_minutes:
+                            _mark_resonant(items[i], items[j])
+                    except (TypeError, AttributeError):
                         _mark_resonant(items[i], items[j])
                 else:
                     _mark_resonant(items[i], items[j])

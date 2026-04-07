@@ -159,18 +159,36 @@ async def handle_command(command: str, chat_id: str) -> str:
             f"**总信息源:** {len(SOURCES)} 个\n"
             f"**AI/科技源:** {tech_count} 个\n"
             f"**分类:** all/tech/finance/world/military/politics\n"
-            f"**版本:** v2.1\n"
+            f"**版本:** v2.2\n"
             f"**状态:** 🟢 运行中\n"
+            f"**情报引擎:** Gemini-Deep + Keyword-Smart 双引擎\n"
             f"\n_最后更新: {datetime.now(timezone(timedelta(hours=8))).strftime('%H:%M:%S')}_"
         )
     
     if command == "/oracle":
-        from bot_f_oracle import run_oracle
-        asyncio.create_task(run_oracle())
-        return "🔮 **Oracle 分析已触发**\n\n深度情报分析正在进行中，请稍候...结果将自动推送。"
+        from intelligence_engine import run_intelligence_report, send_to_telegram
+        result = await run_intelligence_report(category="oracle", chat_id=chat_id)
+        report = result["report"]
+        sent = await send_to_telegram(report, chat_id)
+        return "🔮 **Oracle 情报分析完成**\n\n引擎: %s | 分析: %d 条\n\n%s" % (result["engine"], result["count"], "_完整报告已推送_" if sent else "_推送失败_")
     
     if command in CATEGORY_MAP:
         category = CATEGORY_MAP[command]
+        
+        if command in ("/tech", "/new"):
+            from intelligence_engine import run_intelligence_report, send_to_telegram
+            intel_cat = category if category != "all" else "tech"
+            result = await run_intelligence_report(category=intel_cat, chat_id=chat_id)
+            
+            if result.get("count", 0) > 0:
+                sent = await send_to_telegram(result["report"], chat_id)
+                return "🔍 **%s 情报报告**\n引擎: %s | 分析: %d 条\n\n%s" % (
+                    EMOJI_MAP.get(category, '📰'), 
+                    result["engine"], 
+                    result["count"],
+                    "_完整报告已推送_" if sent else "_推送失败_"
+                )
+        
         max_items = 15 if category == "all" else 10
         
         result = await aggregate_free_news(
