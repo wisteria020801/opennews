@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  opennews-bot:
+    build: .
+    container_name: opennews-matrix
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN_G=${BOT_TOKEN_G}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CHAT_ID_G=${CHAT_ID_G:-1003590230315}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  opennews-scheduler:
+    build: .
+    container_name: opennews-scheduler
+    restart: unless-stopped
+    environment:
+      - BOT_TOKEN_G=${BOT_TOKEN_G}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - CHAT_ID_G=${CHAT_ID_G:-1003590230315}
+    command: ["python", "src/scheduler.py", "--mode", "loop"]
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - opennews-bot
+
+volumes:
+  data:
