@@ -176,7 +176,11 @@ def _build_page_properties(item: dict) -> dict:
     categories = item.get("categories", []) or []
     all_tags = list(set(tags + categories))[:15]
     
-    signal_type = item.get("signal_type", "").replace("_", " ").title()
+    raw_signal = item.get("signal_type", "")
+    if hasattr(raw_signal, 'value'):
+        signal_type = raw_signal.value.replace("_", " ").title()
+    else:
+        signal_type = str(raw_signal).replace("_", " ").title()
     source = item.get("source", "")
     
     published_at = item.get("published_at", "")

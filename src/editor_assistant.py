@@ -164,6 +164,160 @@ SIGNAL_PATTERNS = [
     ),
 ]
 
+SOURCE_AUTHORITY = {
+    "tier_1_official": {
+        "sources": ["openai.com", "blog.google", "deepmind.google", "anthropic.com", "meta.ai", "ai.meta.com"],
+        "weight": 1.0,
+        "label": "官方一手信源",
+        "bonus": 1.5
+    },
+    "tier_1_research": {
+        "sources": ["arxiv.org", "arxiv.org/abs", "bair.berkeley.edu", "intelligence.org"],
+        "weight": 0.95,
+        "label": "学术一手信源",
+        "bonus": 1.2
+    },
+    "tier_2_media": {
+        "sources": ["technologyreview.com", "wired.com", "theverge.com", "arstechnica.com", "venturebeat.com", "techcrunch.com", "the-decoder.com"],
+        "weight": 0.85,
+        "label": "权威科技媒体",
+        "bonus": 0.8
+    },
+    "tier_2_cloud": {
+        "sources": ["cloud.google.com", "aws.amazon.com", "azure.microsoft.com", "huggingface.co/blog"],
+        "weight": 0.88,
+        "label": "云厂商技术博客",
+        "bonus": 0.9
+    },
+    "tier_3_aggregator": {
+        "sources": ["bensbites.com", "producthunt.com", "news.ycombinator.com", "reddit.com"],
+        "weight": 0.6,
+        "label": "聚合站/社区",
+        "bonus": 0.0
+    },
+    "tier_4_unknown": {
+        "sources": [],
+        "weight": 0.5,
+        "label": "未知来源",
+        "bonus": -0.3
+    }
+}
+
+ENTITY_KEYWORDS = {
+    "OpenAI": ["openai", "gpt", "chatgpt", "sora", "dall-e", "sam altman", "oai"],
+    "Anthropic": ["anthropic", "claude", "dario amodei", "constitutional ai"],
+    "Google DeepMind": ["deepmind", "google ai", "gemini", "alphafold", "demis hassabis", "sundar pichai"],
+    "Meta AI": ["meta ai", "llama", "pytorch", "yann lecun", "mark zuckerberg", "facebook ai"],
+    "NVIDIA": ["nvidia", "cuda", "gpu", "jensen huang", "blackwell", "hopper", "dgx"],
+    "Hugging Face": ["hugging face", "transformers", "hf.co", "diffusers", "clement delangue"],
+    "Mistral": ["mistral", "mistral ai", "arthur Mensch"],
+    "Cohere": ["cohere", "command r", "embed", "aidan gomez"],
+    "xAI": ["xai", "grok", "elon musk"],
+    "Apple Intelligence": ["apple intelligence", "mlx", "ferret-ui", "tim cook"],
+}
+
+def get_source_tier(source_url: str, source_name: str = "") -> dict:
+    combined = "%s %s" % (source_url.lower(), source_name.lower())
+    
+    for tier_name, tier_info in SOURCE_AUTHORITY.items():
+        for domain in tier_info["sources"]:
+            if domain in combined:
+                return {**tier_info, "name": tier_name}
+    
+    return {**SOURCE_AUTHORITY["tier_4_unknown"], "name": "tier_4_unknown"}
+
+def extract_entities(text: str) -> list[str]:
+    text_lower = text.lower()
+    found_entities = []
+    
+    for entity_name, keywords in ENTITY_KEYWORDS.items():
+        for kw in keywords:
+            if kw in text_lower:
+                found_entities.append(entity_name)
+                break
+    
+    return list(set(found_entities))
+
+def calculate_hotspot_burst(items: list[dict], current_item: dict, time_window_hours: float = 6.0) -> dict:
+    now = datetime.now(timezone(timedelta(hours=8)))
+    window_start = now - timedelta(hours=time_window_hours)
+    
+    current_title = current_item.get("title", "").lower()
+    current_summary = (current_item.get("summary", "") or "").lower()[:200]
+    current_entities = extract_entities("%s %s" % (current_title, current_summary))
+    
+    related_items = []
+    source_domains = set()
+    
+    for item in items:
+        if item.get("link") == current_item.get("link"):
+            continue
+        
+        item_title = item.get("title", "").lower() or ""
+        item_summary = (item.get("summary", "") or "").lower()[:200]
+        item_time_str = item.get("time")
+        
+        try:
+            if isinstance(item_time_str, str):
+                item_time = datetime.fromisoformat(item_time_str.replace("Z", "+00:00"))
+            else:
+                continue
+            
+            if item_time < window_start:
+                continue
+                
+        except:
+            continue
+        
+        item_entities = extract_entities("%s %s" % (item_title, item_summary))
+        
+        shared_entities = set(current_entities) & set(item_entities)
+        
+        if len(shared_entities) >= 1 and (current_entities or item_entities):
+            jaccard = len(shared_entities) / max(len(set(current_entities) | set(item_entities)), 1)
+            
+            title_words = set(current_title.split()) & set(item_title.split())
+            title_overlap = len(title_words) / max(len(set(current_title.split()) | set(item_title.split())), 1)
+            
+            combined_score = (jaccard * 0.7 + title_overlap * 0.3)
+            
+            if combined_score > 0.15:
+                source_domain = ""
+                link = item.get("source", "") or item.get("link", "") or ""
+                for part in link.split("/")[2:3]:
+                    source_domain = part
+                    break
+                source_domains.add(source_domain)
+                
+                related_items.append({
+                    "score": combined_score,
+                    "source": item.get("source", ""),
+                    "time_diff_hours": (now - item_time).total_seconds() / 3600,
+                    "entities": list(shared_entities)
+                })
+    
+    related_items.sort(key=lambda x: x["score"], reverse=True)
+    
+    burst_score = min(len(source_domains) * 0.8 + len(related_items) * 0.15, 5.0)
+    
+    is_bursting = len(source_domains) >= 3 or (len(related_items) >= 5 and burst_score >= 2.5)
+    
+    avg_time_diff = sum(r["time_diff_hours"] for r in related_items) / max(len(related_items), 1)
+    
+    return {
+        "burst_score": round(burst_score, 2),
+        "is_bursting": is_bursting,
+        "related_count": len(related_items),
+        "unique_sources": len(source_domains),
+        "avg_time_diff_hours": round(avg_time_diff, 1),
+        "top_related": related_items[:3],
+        "entities_detected": current_entities,
+        "hotspot_level": "EXPLODING" if is_bursting and len(source_domains) >= 5 else 
+                         "VIRAL" if is_bursting and len(source_domains) >= 3 else
+                         "TRENDING" if burst_score >= 1.5 else
+                         "NORMAL"
+    }
+
 
 def _generate_id(title: str, source: str) -> str:
     raw = "%s|%s|%s" % (title, source, datetime.now().strftime("%Y%m%d"))
@@ -198,7 +352,8 @@ def detect_signal_type(item: dict) -> tuple[SignalType, float, list[str]]:
 
 
 def calculate_content_tier(signal_type: SignalType, confidence: float, 
-                          resonance_count: int, source_quality: int) -> tuple[ContentTier, float]:
+                          resonance_count: int, source_quality: int,
+                          hotspot_info: dict = None, source_authority: dict = None) -> tuple[ContentTier, float]:
     
     tier_scores = {
         SignalType.MODEL_BREAKTHROUGH: 9.0,
@@ -219,7 +374,21 @@ def calculate_content_tier(signal_type: SignalType, confidence: float,
     source_bonus = source_quality * 0.3
     confidence_adj = (confidence - 0.5) * 2
     
-    final_score = base_score + resonance_bonus + source_bonus + confidence_adj
+    authority_bonus = 0.0
+    if source_authority:
+        authority_bonus = source_authority.get("bonus", 0.0) * 0.4
+    
+    hotspot_boost = 0.0
+    if hotspot_info:
+        burst_score = hotspot_info.get("burst_score", 0)
+        is_bursting = hotspot_info.get("is_bursting", False)
+        
+        if is_bursting and base_score >= 6.0:
+            hotspot_boost = min(burst_score * 0.3, 1.5)
+        elif burst_score >= 1.5 and base_score >= 5.0:
+            hotspot_boost = burst_score * 0.15
+    
+    final_score = base_score + resonance_bonus + source_bonus + confidence_adj + authority_bonus + hotspot_boost
     final_score = max(0.0, min(10.0, final_score))
     
     if final_score >= 7.5:
@@ -503,7 +672,9 @@ def _build_analysis_prompt(items: list[dict], category: str = "tech") -> str:
 async def deep_curate(items: list[dict]) -> list[CuratedItem]:
     curated = []
     
-    for item in items:
+    print("[DeepCuration] Starting v2.0 with hotspot detection + source authority...")
+    
+    for idx, item in enumerate(items):
         curated_item = CuratedItem()
         curated_item.id = _generate_id(item.get("title", ""), item.get("source", ""))
         curated_item.title = item.get("title", "")
@@ -529,26 +700,74 @@ async def deep_curate(items: list[dict]) -> list[CuratedItem]:
         curated_item.is_reinvention = signal_type == SignalType.REINVENTION
         curated_item.noise_reasons = noise_reasons
         
-        resonance_count = item.get("resonance_count", 1)
+        source_url = item.get("link") or item.get("source") or ""
+        source_name = item.get("source") or ""
+        source_authority = get_source_tier(source_url, source_name)
+        
+        hotspot_info = calculate_hotspot_burst(items, item)
+        
+        resonance_count = item.get("resonance_count", 1) + hotspot_info.get("unique_sources", 0)
+        
         source_rank = item.get("rank", 5)
-        source_quality = max(1, 6 - source_rank)
+        source_quality = max(1, int(source_authority.get("weight", 0.5) * 6))
         
         content_tier, score = calculate_content_tier(
-            signal_type, confidence, resonance_count, source_quality
+            signal_type, confidence, resonance_count, source_quality,
+            hotspot_info=hotspot_info, source_authority=source_authority
         )
         curated_item.content_tier = content_tier
-        curated_item.overall_score = score
+        curated_item.overall_score = round(score, 2)
         
-        if score >= 8.0:
+        if hotspot_info["is_bursting"] and score >= 7.0:
             curated_item.tier = "CRITICAL"
-        elif score >= 6.0:
+        elif score >= 8.0 or (hotspot_info["is_bursting"] and score >= 6.5):
             curated_item.tier = "HIGH"
-        elif score >= 4.0:
+        elif score >= 6.0 or hotspot_info["burst_score"] >= 2.0:
             curated_item.tier = "TRENDING"
+        elif score >= 4.0:
+            curated_item.tier = "NORMAL"
         else:
             curated_item.tier = "NOISE"
         
+        entities = extract_entities("%s %s" % (curated_item.title, curated_item.summary))
+        curated_item.tags.extend(entities)
+        
+        if hotspot_info.get("is_bursting"):
+            curated_item.tags.append("[HOTSPOT:%s]" % hotspot_info["hotspot_level"])
+        
+        if source_authority.get("name", "").startswith("tier_1"):
+            curated_item.tags.append("[OFFICIAL_SOURCE]")
+        
+        curated_item.scores = {
+            "base": round(score - resonance_count * 0.5 - source_quality * 0.3, 2),
+            "resonance_bonus": round(min(resonance_count * 0.5, 2.0), 2),
+            "source_quality": round(source_quality * 0.3, 2),
+            "authority_bonus": round(source_authority.get("bonus", 0) * 0.4, 2),
+            "hotspot_boost": round(
+                min(hotspot_info.get("burst_score", 0) * 0.3, 1.5) if hotspot_info.get("is_bursting") 
+                else hotspot_info.get("burst_score", 0) * 0.15 if hotspot_info.get("burst_score", 0) >= 1.5
+                else 0, 2),
+            "final": round(score, 2)
+        }
+        
         curated.append(curated_item)
+    
+    curated.sort(key=lambda x: (x.overall_score, len(x.tags)), reverse=True)
+    
+    burst_items = [c for c in curated if c.tier in ["CRITICAL", "HIGH"]]
+    normal_items = [c for c in curated if c.tier not in ["CRITICAL", "HIGH"]]
+    
+    curated = burst_items + normal_items
+    
+    tier_counts = {t.value: sum(1 for c in curated if c.content_tier.value == t.value) for t in ContentTier}
+    burst_count = sum(1 for c in curated if "[HOTSPOT:" in str(c.tags))
+    
+    print("[DeepCuration] v2.0 Complete: %d items processed" % len(curated))
+    print("  Tiers: GOLD=%d SILVER=%d BRONZE=%d FILTER=%d" % (
+        tier_counts.get("gold", 0), tier_counts.get("silver", 0),
+        tier_counts.get("bronze", 0), tier_counts.get("filter", 0)
+    ))
+    print("  Hotspots detected: %d items" % burst_count)
     
     return curated
 
