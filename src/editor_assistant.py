@@ -703,6 +703,21 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
         elapsed = time.time() - start_time
         print("[Editor] Report generated in %.1fs" % elapsed)
         
+        notion_sync_result = None
+        try:
+            from notion_sync import batch_create_pages
+            items_for_notion = [asdict(c) for c in display_items if c.content_tier in [ContentTier.GOLD, ContentTier.SILVER]]
+            if items_for_notion:
+                print("[Editor] Syncing %d high-value items to Notion..." % len(items_for_notion))
+                notion_sync_result = await batch_create_pages(items_for_notion, delay_seconds=0.5)
+                print("[Editor] Notion sync: %d success, %d failed" % (
+                    notion_sync_result.get("success", 0),
+                    notion_sync_result.get("failed", 0)
+                ))
+        except Exception as e:
+            print("[Editor] Notion sync skipped (optional): %s" % str(e)[:80])
+            notion_sync_result = None
+        
         return {
             "count": len(display_items),
             "tier_breakdown": {
@@ -712,7 +727,8 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
                 "filtered": filtered_count
             },
             "report": report,
-            "items": [asdict(c) for c in display_items]
+            "items": [asdict(c) for c in display_items],
+            "notion_sync": notion_sync_result
         }
         
     except Exception as e:

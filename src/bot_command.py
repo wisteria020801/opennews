@@ -255,23 +255,36 @@ async def handle_command(command: str, chat_id: str) -> str:
             [{"text": "🔄 重新分析", "callback_data": "/editor"}, {"text": "🤖 AI科技", "callback_data": "/tech"}],
             [{"text": "📥 导出素材库", "callback_data": "/export"}],
         ])
+        notion_info = result.get("notion_sync")
+        notion_status = ""
+        if notion_info:
+            n_success = notion_info.get("success", 0)
+            n_failed = notion_info.get("failed", 0)
+            if n_success > 0:
+                notion_status = "\n\n_[Notion] Synced %d items to material library_" % n_success
+            else:
+                notion_status = "\n\n_[Notion] Sync: 0 items (all BRONZE or below)_"
+        else:
+            notion_status = "\n\n_[Notion] Not configured or sync skipped_"
+        
         summary = (
-            "✍️ *编辑助理分析完成*\n\n"
-            "版本: `v3.0 (深度降噪引擎)`\n"
-            "总情报: *%d* 条\n\n"
-            "*内容分层:*\n"
-            "- 🥇 头版素材: *%d* 条\n"
-            "- 🥈 重要资讯: *%d* 条\n"
-            "- 🥉 一般动态: *%d* 条\n"
-            "- 🗑️ 已过滤噪音: *%d* 条\n\n"
-            "%s"
+            "*Editor v3.0 Analysis Complete*\n\n"
+            "Version: `v3.0 (Deep Curation Engine)`\n"
+            "Total Items: *%d*\n\n"
+            "*Content Tiers:*\n"
+            "- GOLD: *%d* (Headline)\n"
+            "- SILVER: *%d* (Important)\n"
+            "- BRONZE: *%d* (General)\n"
+            "- FILTERED: *%d* (Noise)\n\n"
+            "%s%s"
             % (
                 result["count"],
                 tier_info.get("gold", 0),
                 tier_info.get("silver", 0),
                 tier_info.get("bronze", 0),
                 tier_info.get("filtered", 0),
-                "_完整报告已推送_" if sent else "_推送失败_"
+                "_Report sent_" if sent else "_Send failed_",
+                notion_status
             )
         )
         await send_message(chat_id, summary, reply_markup=keyboard)
