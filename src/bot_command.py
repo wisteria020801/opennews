@@ -23,6 +23,7 @@ DEFAULT_CHAT_ID = os.environ.get("CHAT_ID_G", "-1003590230315")
 COMMANDS = {
     "/new": "📰 全领域新闻 Top 10",
     "/tech": "🤖 AI/科技前沿 (情报引擎)",
+    "/editor": "✍️ 编辑助理 (深度降噪+写稿辅助)",
     "/finance": "💹 金融/加密市场",
     "/world": "🌍 全球突发新闻",
     "/military": "⚔️ 军事冲突动态",
@@ -237,6 +238,41 @@ async def handle_command(command: str, chat_id: str) -> str:
             "%s" 
             % (result["engine"], result["count"],
                "_完整报告已推送_" if sent else "_推送失败_")
+        )
+        await send_message(chat_id, summary, reply_markup=keyboard)
+        return ""
+    
+    if raw_command == "/editor":
+        from editor_assistant import run_editor_report, send_to_telegram as editor_send
+        await send_message(chat_id, "✍️ *Editor Assistant v3.0 启动中...*\n\n_正在执行深度降噪+关联分析_")
+        
+        result = await run_editor_report(category="tech", chat_id=chat_id)
+        report = result["report"]
+        sent = await editor_send(report, chat_id)
+        
+        tier_info = result.get("tier_breakdown", {})
+        keyboard = build_inline_keyboard([
+            [{"text": "🔄 重新分析", "callback_data": "/editor"}, {"text": "🤖 AI科技", "callback_data": "/tech"}],
+            [{"text": "📥 导出素材库", "callback_data": "/export"}],
+        ])
+        summary = (
+            "✍️ *编辑助理分析完成*\n\n"
+            "版本: `v3.0 (深度降噪引擎)`\n"
+            "总情报: *%d* 条\n\n"
+            "*内容分层:*\n"
+            "- 🥇 头版素材: *%d* 条\n"
+            "- 🥈 重要资讯: *%d* 条\n"
+            "- 🥉 一般动态: *%d* 条\n"
+            "- 🗑️ 已过滤噪音: *%d* 条\n\n"
+            "%s"
+            % (
+                result["count"],
+                tier_info.get("gold", 0),
+                tier_info.get("silver", 0),
+                tier_info.get("bronze", 0),
+                tier_info.get("filtered", 0),
+                "_完整报告已推送_" if sent else "_推送失败_"
+            )
         )
         await send_message(chat_id, summary, reply_markup=keyboard)
         return ""
