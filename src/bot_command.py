@@ -163,6 +163,9 @@ async def handle_callback_query(callback_data: str, chat_id: str):
 
 async def handle_command(command: str, chat_id: str) -> str:
     command = command.strip()
+    # 移除 @botname 后缀
+    if '@' in command:
+        command = command.split('@')[0].strip()
     raw_command = command.lower()
     
     if raw_command in ("/help", "/start"):
@@ -554,9 +557,9 @@ async def process_update(update: dict):
     if response:
         success = await send_message(chat_id, response)
         if success:
-            print("  ✅ Response sent (%d chars)" % len(response))
+            print("  [OK] Response sent (%d chars)" % len(response))
         else:
-            print("  ❌ Failed to send")
+            print("  [FAIL] Failed to send")
 
 
 async def register_bot_commands():
@@ -611,28 +614,42 @@ async def register_bot_commands():
 
 async def run_bot():
     if not BOT_TOKEN:
-        print("❌ Error: BOT_TOKEN_G / TECHBOTTOKEN not set.")
+        print("[ERROR] BOT_TOKEN_G / TECHBOTTOKEN not set.")
         print("   Set it with: $env:BOT_TOKEN_G='your-token'")
         return
     
     me = await call_telegram_api("getMe")
     if me.get("ok"):
         bot_info = me["result"]
-        print("🤖 Bot started: @%s (%s)" % (
-            bot_info.get('username', '?'),
-            bot_info.get('first_name', '?')
-        ))
-        print("   ID: %d" % bot_info.get('id'))
+        try:
+            print("🤖 Bot started: @%s (%s)" % (
+                bot_info.get('username', '?'),
+                bot_info.get('first_name', '?')
+            ))
+        except UnicodeEncodeError:
+            print("[OK] Bot started: @%s (%s)" % (
+                bot_info.get('username', '?'),
+                bot_info.get('first_name', '?')
+            ))
+        try:
+            print("   ID: %d" % bot_info.get('id'))
+        except UnicodeEncodeError:
+            print("   ID: %d" % bot_info.get('id'))
     else:
-        print("⚠️ Failed to get bot info, but continuing...")
+        print("[WARN] Failed to get bot info, but continuing...")
     
-    print("\n📋 Registering command menu...")
+    print("\n[INFO] Registering command menu...")
     await register_bot_commands()
     
-    print("\n📡 Listening for commands... (Ctrl+C to stop)")
+    print("\n[LISTEN] Polling for commands... (Ctrl+C to stop)")
     print("\nAvailable commands:")
     for cmd, desc in COMMANDS.items():
-        print("  %-12s %s" % (cmd, desc))
+        safe_desc = desc
+        try:
+            print("  %-12s %s" % (cmd, safe_desc))
+        except UnicodeEncodeError:
+            safe_desc = safe_desc.encode('ascii', errors='replace').decode('ascii')
+            print("  %-12s %s" % (cmd, safe_desc))
     print("")
     
     offset = 0
@@ -644,7 +661,7 @@ async def run_bot():
                 await process_update(update)
                     
         except KeyboardInterrupt:
-            print("\n🛑 Bot stopped by user.")
+            print("\n[STOP] Bot stopped by user.")
             break
         except Exception as e:
             print("[Error] %s" % e)
