@@ -1,14 +1,24 @@
+# Dependencies
 __pycache__/
 *.pyc
 *.pyo
-*.pyd
-.Python
-env/
-venv/
-ENV/
-VENV/
 .venv/
-pip-wheel-metadata/
-*.egg-info/
-dist/
-build/
+venv/
+
+# Environment variables (contains secrets)
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temp files
+test_*.py
+fix_*.py
