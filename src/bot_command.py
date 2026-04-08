@@ -315,20 +315,95 @@ async def handle_command(command: str, chat_id: str) -> str:
         await send_message(chat_id, summary, reply_markup=keyboard)
         return ""
     
-    if raw_command == "/write":
+    if raw_command == "/write" or raw_command.startswith("/write "):
         from editor_assistant import run_editor_report
-        await send_message(chat_id, "*Writing Assistant v1.0*\n\n_Generating writing materials..._")
+        
+        write_arg = ""
+        if raw_command.startswith("/write "):
+            write_arg = command[len("/write "):].strip()
+        
+        await send_message(chat_id, "*Writing Assistant v2.0*\n\n_Generating writing materials..._")
         
         result = await run_editor_report(category="tech", chat_id=chat_id, max_items=20)
         
         items = result.get("items", [])
         gold_items = [i for i in items if i.get("content_tier") == "gold"]
         silver_items = [i for i in items if i.get("content_tier") == "silver"]
+        all_high_value = gold_items + silver_items
         
-        if not gold_items and not silver_items:
+        if not all_high_value:
             return "_No high-value material available. Try /editor first._"
         
-        best_item = (gold_items + silver_items)[0]
+        best_item = None
+        selection_mode = "auto"
+        
+        if write_arg:
+            try:
+                item_num = int(write_arg)
+                if 1 <= item_num <= len(all_high_value):
+                    best_item = all_high_value[item_num - 1]
+                    selection_mode = "number_%d" % item_num
+                else:
+                    return "_Invalid number. Available: 1-%d\nUse /write to see the list, or /write <number>_" % len(all_high_value)
+            except ValueError:
+                keyword_lower = write_arg.lower()
+                matched_items = []
+                
+                for item in all_high_value:
+                    title_lower = (item.get("title", "") or "").lower()
+                    summary_lower = (item.get("summary", "") or "").lower()
+                    tags_str = " ".join(str(t) for t in item.get("tags", []))
+                    combined = "%s %s %s" % (title_lower, summary_lower, tags_str)
+                    
+                    if keyword_lower in combined:
+                        score = 0
+                        if keyword_lower in title_lower:
+                            score += 10
+                        if keyword_lower in summary_lower:
+                            score += 5
+                        for tag in item.get("tags", []):
+                            if keyword_lower in str(tag).lower():
+                                score += 3
+                        
+                        matched_items.append((item, score))
+                
+                matched_items.sort(key=lambda x: x[1], reverse=True)
+                
+                if matched_items:
+                    best_item = matched_items[0][0]
+                    selection_mode = "keyword:%s" % write_arg
+                    
+                    if len(matched_items) > 1:
+                        match_list = "\n*Other matches:*\n"
+                        for idx, (m_item, m_score) in enumerate(matched_items[1:5], 1):
+                            match_list += "%d. %s (relevance: %d)\n" % (
+                                idx + 1,
+                                m_item.get("title", "")[:50],
+                                m_score
+                            )
+                        await send_message(chat_id, match_list)
+                else:
+                    suggest_keywords = []
+                    for item in all_high_value[:5]:
+                        entities = item.get("tags", [])[:3]
+                        suggest_keywords.extend([str(e) for e in entities])
+                    
+                    suggest_unique = list(set(suggest_keywords))[:8]
+                    
+                    return (
+                        "_No items matched '%s'_\n\n"
+                        "*Try these keywords:*\n%s\n\n"
+                        "_Or use /write alone for auto-selection_"
+                    ) % (
+                        write_arg,
+                        ", ".join(suggest_unique) if suggest_unique else "_Run /editor first_"
+                    )
+        else:
+            best_item = all_high_value[0]
+            selection_mode = "auto_top"
+        
+        if not best_item:
+            return "_Could not select item. Try /write without arguments._"
         
         title = best_item.get("title", "Untitled")
         entities = best_item.get("tags", [])
@@ -338,9 +413,23 @@ async def handle_command(command: str, chat_id: str) -> str:
         reactions = best_item.get("competitor_reactions", {})
         chain_pos = best_item.get("industry_chain_position", "")
         actionable = best_item.get("actionable_for_editor", "")
+        source = best_item.get("source", "")
+        link = best_item.get("link", "")
+        tier = best_item.get("content_tier", "").upper()
+        score = best_item.get("overall_score", 0)
+        
+        item_index = -1
+        for idx, item in enumerate(all_high_value):
+            if item.get("title") == title:
+                item_index = idx + 1
+                break
         
         write_guide = (
-            "*Writing Guide: %s*\n\n" % title[:50] +
+            "*Writing Guide [%s]*\n" % tier +
+            "*Item #%d of %d high-value materials*\n\n" % (item_index, len(all_high_value)) +
+            "=" * 30 + "\n\n" +
+            "*Title:*\n%s\n\n" % title +
+            "*Source:* %s | *Score:* %.1f\n\n" % (source[:40], score) +
             "---\n\n" +
             "*Core Insight:*\n%s\n\n" % (core_highlight or "_Pending analysis_") +
             "*Entities:*\n%s\n\n" % (", ".join(entities[:5]) if entities else "_Detected after analysis_") +
@@ -359,12 +448,23 @@ async def handle_command(command: str, chat_id: str) -> str:
         
         write_guide += (
             "\n*Action Items:*\n%s\n\n" % (actionable or "_See full report_") +
-            "_Use /export to sync all materials to Notion_"
+            "*Original Link:*\n%s\n\n" % (link or "_Not available_") +
+            "_Mode: %s | Use /write <number> for other items_" % selection_mode
         )
         
-        keyboard = build_inline_keyboard([
-            [{"text": "Full Analysis", "callback_data": "/editor"}, {"text": "Export All", "callback_data": "/export"}],
+        keyboard_buttons = []
+        row1 = [{"text": "Full Analysis", "callback_data": "/editor"}]
+        if item_index > 1:
+            row1.append({"text": "Prev Item", "callback_data": "/write %d" % (item_index - 1)})
+        if item_index < len(all_high_value):
+            row1.append({"text": "Next Item", "callback_data": "/write %d" % (item_index + 1)}) if len(row1) < 3 else None
+        keyboard_buttons.append(row1)
+        
+        keyboard_buttons.append([
+            {"text": "Export to Notion", "callback_data": "/export"}
         ])
+        
+        keyboard = build_inline_keyboard(keyboard_buttons)
         
         await send_message(chat_id, write_guide, reply_markup=keyboard)
         return ""
