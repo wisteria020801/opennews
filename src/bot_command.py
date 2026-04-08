@@ -244,17 +244,40 @@ async def handle_command(command: str, chat_id: str) -> str:
     
     if raw_command == "/editor":
         from editor_assistant import run_editor_report, send_to_telegram as editor_send
-        await send_message(chat_id, "✍️ *Editor Assistant v3.0 启动中...*\n\n_正在执行深度降噪+关联分析_")
+        await send_message(chat_id, "*Editor Assistant v3.1 Starting...*\n\n_Running deep curation + contextual analysis_")
         
         result = await run_editor_report(category="tech", chat_id=chat_id)
         report = result["report"]
         sent = await editor_send(report, chat_id)
         
         tier_info = result.get("tier_breakdown", {})
+        
+        hotspot_items = []
+        for item_data in result.get("items", []):
+            tags = item_data.get("tags", [])
+            if any("[HOTSPOT:" in str(t) for t in tags):
+                hotspot_items.append(item_data)
+        
+        if hotspot_items:
+            alert_msg = "\n\n*HOTSPOT ALERT - %d Breaking Items Detected:*\n" % len(hotspot_items)
+            for idx, h_item in enumerate(hotspot_items[:5], 1):
+                score = h_item.get("overall_score", 0)
+                source = h_item.get("source", "")[:30]
+                alert_msg += "%d. [%s] %s\n   _Source: %s | Score: %.1f_\n" % (
+                    idx,
+                    h_item.get("tier", "HIGH"),
+                    h_item.get("title", "")[:60],
+                    source,
+                    score
+                )
+            await send_message(chat_id, alert_msg)
+        
         keyboard = build_inline_keyboard([
-            [{"text": "🔄 重新分析", "callback_data": "/editor"}, {"text": "🤖 AI科技", "callback_data": "/tech"}],
-            [{"text": "📥 导出素材库", "callback_data": "/export"}],
+            [{"text": "Re-analyze", "callback_data": "/editor"}, {"text": "AI Tech", "callback_data": "/tech"}],
+            [{"text": "Export to Notion", "callback_data": "/export"}, {"text": "Writing Help", "callback_data": "/write"}],
+            [{"text": "Daily Digest", "callback_data": "/digest"}],
         ])
+        
         notion_info = result.get("notion_sync")
         notion_status = ""
         if notion_info:
@@ -268,14 +291,15 @@ async def handle_command(command: str, chat_id: str) -> str:
             notion_status = "\n\n_[Notion] Not configured or sync skipped_"
         
         summary = (
-            "*Editor v3.0 Analysis Complete*\n\n"
-            "Version: `v3.0 (Deep Curation Engine)`\n"
+            "*Editor v3.1 Analysis Complete*\n\n"
+            "Engine: `Deep Curation v2.0 + Contextual Analysis`\n"
             "Total Items: *%d*\n\n"
             "*Content Tiers:*\n"
-            "- GOLD: *%d* (Headline)\n"
-            "- SILVER: *%d* (Important)\n"
-            "- BRONZE: *%d* (General)\n"
-            "- FILTERED: *%d* (Noise)\n\n"
+            "- GOLD: *%d* (Headline Material)\n"
+            "- SILVER: *%d* (Important News)\n"
+            "- BRONZE: *%d* (General Updates)\n"
+            "- FILTERED: *%d* (Noise Removed)\n"
+            "- HOTSPOTS: *%d* (Breaking)\n\n"
             "%s%s"
             % (
                 result["count"],
@@ -283,11 +307,66 @@ async def handle_command(command: str, chat_id: str) -> str:
                 tier_info.get("silver", 0),
                 tier_info.get("bronze", 0),
                 tier_info.get("filtered", 0),
+                len(hotspot_items),
                 "_Report sent_" if sent else "_Send failed_",
                 notion_status
             )
         )
         await send_message(chat_id, summary, reply_markup=keyboard)
+        return ""
+    
+    if raw_command == "/write":
+        from editor_assistant import run_editor_report
+        await send_message(chat_id, "*Writing Assistant v1.0*\n\n_Generating writing materials..._")
+        
+        result = await run_editor_report(category="tech", chat_id=chat_id, max_items=20)
+        
+        items = result.get("items", [])
+        gold_items = [i for i in items if i.get("content_tier") == "gold"]
+        silver_items = [i for i in items if i.get("content_tier") == "silver"]
+        
+        if not gold_items and not silver_items:
+            return "_No high-value material available. Try /editor first._"
+        
+        best_item = (gold_items + silver_items)[0]
+        
+        title = best_item.get("title", "Untitled")
+        entities = best_item.get("tags", [])
+        core_highlight = best_item.get("core_highlight", "")
+        angles = best_item.get("draft_angles", [])
+        historical = best_item.get("historical_context", "")
+        reactions = best_item.get("competitor_reactions", {})
+        chain_pos = best_item.get("industry_chain_position", "")
+        actionable = best_item.get("actionable_for_editor", "")
+        
+        write_guide = (
+            "*Writing Guide: %s*\n\n" % title[:50] +
+            "---\n\n" +
+            "*Core Insight:*\n%s\n\n" % (core_highlight or "_Pending analysis_") +
+            "*Entities:*\n%s\n\n" % (", ".join(entities[:5]) if entities else "_Detected after analysis_") +
+            "*Historical Context:*\n%s\n\n" % (historical or "_Pending analysis_") +
+            "*Industry Chain Position:*\n%s\n\n" % (chain_pos or "_Pending analysis_") +
+            "*Suggested Angles:*\n"
+        )
+        
+        for idx, angle in enumerate(angles[:4], 1):
+            write_guide += "%d. %s\n" % (idx, angle)
+        
+        if reactions:
+            write_guide += "\n*Competitor Reactions:*\n"
+            for comp, reaction in list(reactions.items())[:3]:
+                write_guide += "- %s: %s\n" % (comp, reaction)
+        
+        write_guide += (
+            "\n*Action Items:*\n%s\n\n" % (actionable or "_See full report_") +
+            "_Use /export to sync all materials to Notion_"
+        )
+        
+        keyboard = build_inline_keyboard([
+            [{"text": "Full Analysis", "callback_data": "/editor"}, {"text": "Export All", "callback_data": "/export"}],
+        ])
+        
+        await send_message(chat_id, write_guide, reply_markup=keyboard)
         return ""
     
     if raw_command.startswith("/search "):
