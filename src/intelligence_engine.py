@@ -761,7 +761,7 @@ async def send_to_telegram(message: str, chat_id: str = None, bot_token: str = N
         else:
             current_chunk += line + '\n'
     if current_chunk.strip():
-        chunks.append(current_chunk.strip)
+        chunks.append(current_chunk.strip())
     
     async with httpx.AsyncClient(timeout=30.0) as client:
         for chunk in chunks:

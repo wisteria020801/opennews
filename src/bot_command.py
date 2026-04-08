@@ -493,20 +493,23 @@ async def handle_command(command: str, chat_id: str) -> str:
                 nav_buttons = []
                 if raw_command == "/tech":
                     nav_buttons = [
-                        {"text": "💹 金融", "callback_data": "/finance"},
-                        {"text": "🌍 全球", "callback_data": "/world"},
-                        {"text": "🔮 Oracle", "callback_data": "/oracle"},
+                        {"text": "Finance", "callback_data": "/finance"},
+                        {"text": "World", "callback_data": "/world"},
+                        {"text": "Oracle", "callback_data": "/oracle"},
                     ]
                 else:
                     nav_buttons = [
-                        {"text": "🤖 AI科技", "callback_data": "/tech"},
-                        {"text": "🔮 Oracle", "callback_data": "/oracle"},
+                        {"text": "AI Tech", "callback_data": "/tech"},
+                        {"text": "Oracle", "callback_data": "/oracle"},
                     ]
                 
-                keyboard = build_inline_keyboard([
-                    [nav_buttons[0], nav_buttons[1]],
-                    [nav_buttons[2]],
-                ])
+                keyboard_rows = []
+                if len(nav_buttons) >= 2:
+                    keyboard_rows.append([nav_buttons[0], nav_buttons[1]])
+                if len(nav_buttons) >= 3:
+                    keyboard_rows.append([nav_buttons[2]])
+                
+                keyboard = build_inline_keyboard(keyboard_rows)
                 
                 summary = (
                     "🔍 *%s 情报报告*\n\n"
