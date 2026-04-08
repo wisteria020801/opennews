@@ -87,6 +87,10 @@ class CuratedItem:
     industry_impact: str = ""
     comparison_context: str = ""
     
+    historical_context: str = ""
+    competitor_reactions: dict = field(default_factory=dict)
+    industry_chain_position: str = ""
+    
     fact_checks: list[dict] = field(default_factory=list)
     source_chain: list[str] = field(default_factory=list)
     
@@ -657,12 +661,88 @@ def _build_analysis_prompt(items: list[dict], category: str = "tech") -> str:
 
 %s
 
-## 分析要求
-请以上述格式返回完整的JSON数组，对所有新闻进行深度编辑分析。
-重点关注：
-1. 识别并过滤低价值内容（套壳/营销/重复）
-2. 为高价值内容生成完整的编辑素材包
-3. 提供具体的写稿角度和行动建议
+## 关联分析知识库
+
+### 1. AI行业关键历史事件（用于历史对比）
+- **2022.11** OpenAI发布ChatGPT → 引发全球AI竞赛
+- **2023.03** GPT-4发布 → 多模态能力突破，企业应用加速
+- **2023.07** Meta发布Llama 2开源 → 开源模型商用化转折点
+- **2023.11** OpenAI政变（Altman被罢免又回归） → AI治理关注度飙升
+- **2024.02** Sora视频生成发布 → 多模态竞争白热化
+- **2024.05** GPT-4o发布 → 实时语音交互新时代
+- **2024.09** OpenAI完成最新融资（估值超1500亿）→ 资本市场信心
+- **2024.10** Anthropic发布Claude 3.5 Sonnet → 编程能力大幅提升
+- **2024.12** Google Gemini 2.0发布 → 多智能体能力
+- **2025.01** DeepSeek-R1发布 → 开源推理模型突破
+- **2025.03** GPT-5预览/ Claude 4发布预期 → 新一轮模型军备竞赛
+
+### 2. 竞品反应预测矩阵
+当某公司发布重大更新时，竞争对手的典型反应模式：
+| 触发事件 | OpenAI | Anthropic | Google | Meta | 其他 |
+|---------|--------|-----------|--------|------|------|
+| 模型发布 | 加速自家节奏 | 强调安全差异 | 对标参数 | 开源对冲 | 集成适配 |
+| 融资消息 | 不回应或低调 | 可能跟进融资 | 加大投入 | 独立发展 | 寻求合作 |
+| 开源动作 | 部分开放API | 坚持闭源 | 全面开源 | 继续开源 | 拥抱生态 |
+| 政策监管 | 主动合规 | 安全优先 | 游说影响 | 自律框架 | 等待观望 |
+| 价格调整 | 跟进降价 | 维持高端 | 免费策略 | 免费增值 | 差异化 |
+
+### 3. AI产业链图谱定位
+```
+[上游：基础设施层]
+├── 芯片算力: NVIDIA, AMD, TPU(Google), 昇腾(华为)
+├── 云服务: AWS(Azure), GCP, Azure, 阿里云
+└── 数据中心: Equinix, Digital Realty
+
+[中游：模型与平台层]
+├── 闭源模型: OpenAI(GPT), Anthropic(Claude), Google(Gemini)
+├── 开源模型: Meta(Llama), Mistral, Qwen(阿里), DeepSeek
+├── 训练框架: PyTorch(Meta), JAX(Google), TensorFlow
+└── 推理优化: vLLM, TensorRT-LLM, ONNX Runtime
+
+[下游：应用与服务层]
+├── 企业应用: Microsoft(Copilot), Salesforce(Einstein)
+├── 开发工具: GitHub Copilot, Cursor, Replit
+├── 内容创作: Midjourney, Runway, Suno
+├── 搜索与信息: Perplexity, You.com, New Bing
+└── 垂直领域: 医疗(Hippocratic), 法律(Harvey), 金融(BloombergGPT)
+
+[横向：安全与治理]
+├── AI安全: Anthropic, ARC, MIRI
+├── 合规工具: Arthur.ai, CalypsoAI
+└── 标准组织: ISO/IEC, NIST, IEEE
+```
+
+### 4. 分析要求（升级版）
+请对所有新闻进行深度关联分析，返回完整JSON数组。每条新闻必须包含：
+
+**基础字段**（必填）：
+- title, summary, source, signal_type, content_tier, overall_score
+- who, what, where, when, why, how, implications
+
+**关联分析字段**（新增重点）：
+1. **historical_context**: 与上述历史事件的关联
+   - 格式: "这与[事件]类似，当时[结果]，本次可能[预测]"
+   
+2. **competitor_reactions**: 预测竞品反应
+   - 格式: {"OpenAI": "可能反应", "Anthropic": "可能反应", ...}
+   
+3. **industry_chain_position**: 在产业链中的位置
+   - 格式: "上游/中游/下游 - [具体环节] - 影响[上下游]"
+   
+4. **write_angles**: 3个写稿角度（更具体）
+   - 数据向、分析向、人物向、趋势向、对比向
+   
+5. **actionable_for_editor**: 编辑行动建议
+   - 需要补充的数据源、可以采访的对象、关注的时间节点
+
+6. **core_highlight**: 一句话核心洞察（用于Notion素材库）
+   - 格式: "[实体] [动作] + [意义/影响]"
+
+**评分标准**：
+- GOLD (8.0+): 官方一手信源 + 模型突破/架构创新 + 多源共振
+- SILVER (6.0+): 权威媒体 + 行业里程碑/融资 + 有一定热度
+- BRONZE (4.0+): 一般资讯但有参考价值
+- FILTER (<4.0): 噪音/营销/套壳内容
 
 """ % (len(items), items_json)
     
@@ -828,6 +908,10 @@ async def gemini_deep_analyze(curated_items: list[CuratedItem]) -> list[CuratedI
                         item.industry_impact = a.get("industry_impact", "")
                         item.comparison_context = a.get("comparison_context", "")
                         
+                        item.historical_context = a.get("historical_context", "")
+                        item.competitor_reactions = a.get("competitor_reactions", {})
+                        item.industry_chain_position = a.get("industry_chain_position", "")
+                        
                         item.fact_checks = a.get("fact_checks", [])
                         item.source_chain = a.get("source_chain", [])
                         
@@ -851,7 +935,68 @@ def _apply_rule_based_analysis(items: list[CuratedItem]) -> list[CuratedItem]:
     for item in items:
         if item.content_tier in [ContentTier.GOLD, ContentTier.SILVER]:
             
+            entities = extract_entities("%s %s" % (item.title, item.summary))
+            
             item.core_highlight = "[%s] %s" % (item.signal_type.value.replace("_", " ").title(), item.title[:80])
+            
+            historical = ""
+            if "OpenAI" in entities and item.signal_type == SignalType.MODEL_BREAKTHROUGH:
+                historical = "类似2023年3月GPT-4发布时的行业震动，当时引发多模态竞赛。本次可能触发新一轮模型能力对标。"
+            elif "Anthropic" in entities and "funding" in (item.title + item.summary).lower():
+                historical = "类似OpenAI 2024年9月融资潮（估值1500亿+），显示资本市场对AI安全赛道的持续信心。"
+            elif "NVIDIA" in entities:
+                historical = "类似2024年GTC大会Blackwell发布，每次GPU架构更新都影响整个AI训练成本曲线。"
+            else:
+                historical = "需结合历史事件库进一步分析关联性"
+            item.historical_context = historical
+            
+            reactions = {}
+            if entities:
+                primary_entity = entities[0] if entities else ""
+                
+                if primary_entity == "OpenAI":
+                    reactions = {
+                        "Anthropic": "可能强调Claude的安全优势或发布对标功能",
+                        "Google": "可能加速Gemini更新节奏或在Google I/O上重点展示",
+                        "Meta": "可能推进Llama开源版本以保持生态竞争力",
+                        "其他": "集成商将快速适配新API"
+                    }
+                elif primary_entity == "Anthropic":
+                    reactions = {
+                        "OpenAI": "可能低调回应或强调用户规模优势",
+                        "Google": "可能突出Gemini的多模态整合",
+                        "Meta": "继续开源差异化策略"
+                    }
+                elif primary_entity == "Google DeepMind":
+                    reactions = {
+                        "OpenAI": "可能发布对比基准测试",
+                        "Anthropic": "可能强调研究方法的差异",
+                        "Meta": "可能加速开源模型迭代"
+                    }
+                elif "funding" in (item.title + item.summary).lower() or "融资" in item.title:
+                    reactions = {
+                        "同行": "可能引发新一轮融资竞赛",
+                        "投资人": "关注点转向商业化落地能力",
+                        "监管": "大型AI公司可能面临更多审查"
+                    }
+                else:
+                    reactions = {"待分析": "需要更多上下文来预测竞品反应"}
+            item.competitor_reactions = reactions
+            
+            chain_pos = ""
+            if item.signal_type in [SignalType.MODEL_BREAKTHROUGH, SignalType.ARCHITECTURE_INNOVATION]:
+                chain_pos = "中游(模型层) - 基础模型突破 - 影响下游所有应用场景"
+            elif item.signal_type == SignalType.PRACTICAL_TOOLCHAIN:
+                chain_pos = "中下游(工具层) - 开发/部署工具 - 降低应用门槛"
+            elif item.signal_type == SignalType.FUNDING_ACQUISITION:
+                chain_pos = "横向(资本层) - 融资/并购 - 影响全产业链资源配置"
+            elif item.signal_type == SignalType.POLICY_REGULATION:
+                chain_pos = "横向(治理层) - 政策/合规 - 影响所有市场参与者"
+            elif "chip" in (item.title + item.summary).lower() or "gpu" in (item.title + item.summary).lower() or "NVIDIA" in entities:
+                chain_pos = "上游(算力层) - 芯片/基础设施 - 制约模型训练规模和成本"
+            else:
+                chain_pos = "待定位 - 需要更多信息确定产业链位置"
+            item.industry_chain_position = chain_pos
             
             item.industry_impact = (
                 "短期：可能引发行业关注；"
@@ -861,12 +1006,18 @@ def _apply_rule_based_analysis(items: list[CuratedItem]) -> list[CuratedItem]:
             
             item.comparison_context = "待Gemini分析后补充对比信息"
             
-            item.actionable_for_editor = "建议跟进此事件发展，收集更多信息后决定是否撰写"
+            item.actionable_for_editor = (
+                "1. 追踪此事件的后续发展\n"
+                "2. 收集官方公告和第三方分析\n"
+                "3. 关注竞品在48-72小时内的反应\n"
+                "4. 准备采访相关领域的专家意见"
+            )
             
             item.draft_angles = [
-                "事件概述：%s" % item.title[:50],
-                "行业影响分析",
-                "技术细节解读（如有）"
+                "事件概述与核心事实梳理: %s" % item.title[:50],
+                "%s视角的深度分析" % (entities[0] if entities else "行业"),
+                "产业链影响评估与趋势预判",
+                "竞品反应追踪与市场格局变化"
             ]
             
             item.fact_checks = [{
