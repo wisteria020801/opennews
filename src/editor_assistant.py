@@ -108,6 +108,13 @@ class CuratedItem:
     inference_parts: list[str] = field(default_factory=list)
     single_source_warning: bool = False
     unverified_claims: list[str] = field(default_factory=list)
+    
+    publish_time: str = ""
+    is_official_source: bool = False
+    is_repost: bool = False
+    original_domain: str = ""
+    conflicting_info: list[dict] = field(default_factory=list)
+    source_freshness: str = ""
 
 
 NOISE_PATTERNS = [
@@ -242,22 +249,132 @@ def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None)
     source = item.source or ""
     title = item.title or ""
     summary = item.summary or ""
+    link = item.link or ""
     
     source_info = get_source_tier(source)
     item.source_tier = source_info.get("name", "tier_4_unknown")
     item.source_credibility = source_info.get("weight", 0.5) * 100
     
+    domain_match = re.search(r'https?://(?:www\.)?([^/]+)', link)
+    if domain_match:
+        item.original_domain = domain_match.group(1).lower()
+    
+    official_domains_patterns = [
+        r'openai\.com', r'anthropic\.com', r'deepmind\.google',
+        r'meta\.ai', r'nvidia\.com', r'google\.com/research',
+        r'microsoft\.com/research', r'arxiv\.org',
+        r'\.gov/', r'\.edu/',
+        r'apple\.com/newsroom', r'amazon\.science'
+    ]
+    if any(re.search(p, link, re.I) for p in official_domains_patterns):
+        item.is_official_source = True
+        item.source_credibility = min(100, item.source_credibility + 15)
+    
+    repost_indicators = [
+        (r'reuters|bloomberg|apnews|afp', "一线通讯社转载"),
+        (r'techcrunch|theverge|wired|arstechnica', "科技媒体二次报道"),
+        (r'36kr|ifeng|sina|qq\.com', "国内门户转载"),
+        (r'medium\.com|substack|zhihu', "个人/社区转发"),
+    ]
+    for pattern, label in repost_indicators:
+        if re.search(pattern, link, re.I):
+            item.is_repost = True
+            break
+    
+    time_patterns = [
+        (r'(\d{4}[-/]\d{1,2}[-/]\d{1,2})', "%Y-%m-%d"),
+        (r'(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})', "%d %b %Y"),
+        (r'(?:published|posted|updated)\s*(\d+)\s*(?:hours?|minutes?)?\s*ago', "recent"),
+        (r'(\d+)\s*分钟前|\d+\s*小时前|\d+\s*天前', "recent_cn"),
+    ]
+    import time as _time
+    now_ts = _time.time()
+    for pattern, fmt in time_patterns:
+        match = re.search(pattern, summary[:200], re.I)
+        if match and fmt in ["recent", "recent_cn"]:
+            time_str = match.group(0).strip()
+            num_match = re.search(r'(\d+)', time_str)
+            if num_match:
+                hours_ago = int(num_match.group(1))
+                if '小时' in time_str or 'hour' in time_str.lower():
+                    hours_ago = hours_ago
+                elif '天' in time_str or 'day' in time_str.lower():
+                    hours_ago = hours_ago * 24
+                elif '分钟' in time_str or 'minute' in time_str.lower():
+                    hours_ago = hours_ago / 60
+                
+                if hours_ago < 6:
+                    item.publish_time = "<6h"
+                    item.source_freshness = "FRESH"
+                    item.source_credibility = min(100, item.source_credibility + 5)
+                elif hours_ago < 24:
+                    item.publish_time = "<24h"
+                    item.source_freshness = "RECENT"
+                elif hours_ago < 72:
+                    item.publish_time = "<72h"
+                    item.source_freshness = "STALE"
+                else:
+                    item.publish_time = ">72h"
+                    item.source_freshness = "OLD"
+            break
+        elif match:
+            try:
+                from datetime import datetime
+                pub_date = datetime.strptime(match.group(1), fmt)
+                age_hours = (now_ts - pub_date.timestamp()) / 3600
+                if age_hours < 6:
+                    item.publish_time = "<6h"
+                    item.source_freshness = "FRESH"
+                elif age_hours < 24:
+                    item.publish_time = "<24h"
+                    item.source_freshness = "RECENT"
+                else:
+                    item.publish_time = ">24h"
+                    item.source_freshness = "STALE"
+            except:
+                pass
+            break
+    
+    if not item.publish_time:
+        item.publish_time = "unknown"
+        item.source_freshness = "UNKNOWN"
+    
     if all_items:
         title_lower = title.lower()
         cross_count = 0
+        conflicting_items = []
+        
         for other in all_items:
             if other.link and other.link != item.link:
                 other_title = (other.title or "").lower()
                 shared_words = set(title_lower.split()) & set(other_title.split())
+                
                 if len(shared_words) >= 3:
                     cross_count += 1
+                    
+                    negation_patterns = [r'not|rul|false|denied|否认|辟谣|取消|推迟']
+                    has_negation = any(re.search(p, other_title, re.I) for p in negation_patterns)
+                    
+                    if has_negation:
+                        conflicting_items.append({
+                            "source": other.source,
+                            "title": (other.title or "")[:60],
+                            "conflict_type": "negation"
+                        })
+                    elif abs(len(other.summary or "") - len(summary)) > 100:
+                        detail_diff = True
+                        conflicting_items.append({
+                            "source": other.source,
+                            "title": (other.title or "")[:60],
+                            "conflict_type": "detail_discrepancy"
+                        })
+        
         item.cross_source_count = cross_count
         item.single_source_warning = cross_count == 0
+        item.conflicting_info = conflicting_items[:3]
+        
+        if conflicting_items:
+            item.source_credibility = max(20, item.source_credibility - 10)
     
     inference_keywords = [
         "可能", "或许", "预计", "推测", "暗示", "预示", "潜在", 
@@ -326,6 +443,19 @@ def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None)
     if item.unverified_claims:
         cred_score -= 10
     
+    if item.is_repost and not item.is_official_source:
+        cred_score -= 5
+    
+    if item.source_freshness == "OLD":
+        cred_score -= 5
+    elif item.source_freshness == "FRESH":
+        cred_score += 3
+    
+    if item.conflicting_info:
+        cred_score -= 8
+    
+    cred_score = max(0, min(100, cred_score))
+    
     if cred_score >= 75:
         credibility_level = "HIGH"
     elif cred_score >= 50:
@@ -345,7 +475,13 @@ def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None)
         "unverified_count": len(item.unverified_claims),
         "fact_samples": item.fact_parts[:3],
         "inference_samples": item.inference_parts[:3],
-        "unverified_samples": item.unverified_claims[:2]
+        "unverified_samples": item.unverified_claims[:2],
+        "publish_time": item.publish_time,
+        "source_freshness": item.source_freshness,
+        "is_official_source": item.is_official_source,
+        "is_repost": item.is_repost,
+        "original_domain": item.original_domain,
+        "conflicting_info": item.conflicting_info
     }
 
 def generate_draft_framework(item: dict, mode: str = "short") -> str:
@@ -369,9 +505,25 @@ def generate_draft_framework(item: dict, mode: str = "short") -> str:
         source_label = evidence.get("source_label", "")
         cross_count = evidence.get("cross_source_count", 0)
         single_warn = evidence.get("single_source_warning", False)
+        is_official = evidence.get("is_official_source", False)
+        is_repost = evidence.get("is_repost", False)
+        original_domain = evidence.get("original_domain", "")
+        freshness = evidence.get("source_freshness", "UNKNOWN")
+        pub_time = evidence.get("publish_time", "unknown")
+        conflicts = evidence.get("conflicting_info", [])
         
         warning_icon = "[!]" if single_warn else "[OK]"
-        source_status = "%s Source: %s (%.0f%%)" % (warning_icon, source_label, cred_score)
+        official_tag = " [OFFICIAL]" if is_official else ""
+        repost_tag = " [REPOST]" if is_repost else ""
+        freshness_icon = {"FRESH": "🟢", "RECENT": "🟡", "STALE": "🟠", "OLD": "🔴", "UNKNOWN": "⚪"}.get(freshness, "⚪")
+        
+        source_status = (
+            "%s Source: %s%s%s (%.0f%%)\n"
+            "Domain: %s | Age: %s %s"
+        ) % (
+            warning_icon, source_label, official_tag, repost_tag, cred_score,
+            original_domain or "N/A", pub_time, freshness_icon
+        )
         
         if single_warn:
             source_status += "\n[WARNING] Single source - not cross-verified"
@@ -380,8 +532,15 @@ def generate_draft_framework(item: dict, mode: str = "short") -> str:
         elif cross_count > 0:
             source_status += "\n[PARTIAL] %d related sources found" % cross_count
         
+        if conflicts:
+            source_status += "\n[CONFLICT] Found conflicting reports:"
+            for c in conflicts[:2]:
+                c_type = c.get("conflict_type", "")
+                c_label = "[DENIED]" if c_type == "negation" else "[DIFFERS]"
+                source_status += "\n  %s %s: %s..." % (c_label, c.get("source", ""), (c.get("title", "") or "")[:40])
+        
         credibility_block = (
-            "\n[EVIDENCE CHAIN]\n%s\n" % source_status
+            "\n[EVIDENCE CHAIN v2.0]\n%s\n" % source_status
         )
         
         fact_samples = evidence.get("fact_samples", [])
@@ -389,19 +548,22 @@ def generate_draft_framework(item: dict, mode: str = "short") -> str:
         unv_samples = evidence.get("unverified_samples", [])
         
         if fact_samples:
-            credibility_block += "\n*Verified Facts:*\n"
+            credibility_block += "\n*Verified Facts (%d):*\n" % len(fact_samples)
             for f in fact_samples[:2]:
                 credibility_block += "  + %s...\n" % f[:60]
         
         if inf_samples:
-            credibility_block += "\n*Model Inferences (not facts):*\n"
+            credibility_block += "\n*Model Inferences - NOT facts (%d):*\n" % len(inf_samples)
             for i in inf_samples[:2]:
                 credibility_block += "  ~ %s...\n" % i[:60]
         
         if unv_samples:
-            credibility_block += "\n*Needs Verification:*\n"
+            credibility_block += "\n*Needs Verification (%d):*\n" % len(unv_samples)
             for u in unv_samples:
                 credibility_block += "  ? %s\n" % u
+        
+        if not fact_samples and not inf_samples:
+            credibility_block += "\n_[Insufficient text for analysis - verify manually]_"
     
     if mode == "short":
         draft = (
@@ -1420,7 +1582,13 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
                     "inference_count": len(c.inference_parts),
                     "fact_samples": c.fact_parts[:3],
                     "inference_samples": c.inference_parts[:3],
-                    "unverified_samples": c.unverified_claims[:2]
+                    "unverified_samples": c.unverified_claims[:2],
+                    "publish_time": c.publish_time,
+                    "source_freshness": c.source_freshness,
+                    "is_official_source": c.is_official_source,
+                    "is_repost": c.is_repost,
+                    "original_domain": c.original_domain,
+                    "conflicting_info": c.conflicting_info
                 }
             else:
                 item_dict["evidence_chain"] = None
@@ -1512,11 +1680,21 @@ _%s | 分类: %s_
             if item.source_tier:
                 tier_icon = "[OK]" if not item.single_source_warning else "[!]"
                 cred_label = "HIGH" if item.source_credibility >= 75 else ("MEDIUM" if item.source_credibility >= 50 else "LOW")
-                body += "📎 可信度: %s %s (%.0f%%)" % (tier_icon, cred_label, item.source_credibility)
+                official_tag = " [官方]" if item.is_official_source else ""
+                repost_tag = " [转载]" if item.is_repost else ""
+                freshness_icon = {"FRESH": "🟢", "RECENT": "🟡", "STALE": "🟠", "OLD": "🔴"}.get(item.source_freshness, "")
+                
+                body += "📎 可信度: %s %s%s%s (%.0f%%)" % (tier_icon, cred_label, official_tag, repost_tag, item.source_credibility)
+                if freshness_icon:
+                    body += " %s" % freshness_icon
                 if item.cross_source_count > 0:
                     body += " | 交叉验证: %d源" % item.cross_source_count
                 elif item.single_source_warning:
                     body += " | [单一来源警告]"
+                if item.publish_time and item.publish_time != "unknown":
+                    body += " | 时效: %s" % item.publish_time
+                if item.conflicting_info:
+                    body += " | ⚠️ 冲突%d条" % len(item.conflicting_info)
                 body += "\n"
             
             body += "🔗 [原文](%s)\n\n" % item.link
