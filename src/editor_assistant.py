@@ -484,6 +484,135 @@ def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None)
         "conflicting_info": item.conflicting_info
     }
 
+def generate_quick_template(item: dict) -> str:
+    title = item.get("title", "Untitled")
+    summary = item.get("summary", "")
+    link = item.get("link", "")
+    source = item.get("source", "")
+    tier = (item.get("content_tier") or "").upper()
+    evidence = item.get("evidence_chain", {})
+    
+    cred_score = evidence.get("credibility_score", 0)
+    cred_level = evidence.get("credibility_level", "UNKNOWN")
+    is_official = evidence.get("is_official_source", False)
+    is_repost = evidence.get("is_repost", False)
+    freshness = evidence.get("source_freshness", "UNKNOWN")
+    cross_count = evidence.get("cross_source_count", 0)
+    single_warn = evidence.get("single_source_warning", True)
+    conflicts = evidence.get("conflicting_info", [])
+    pub_time = evidence.get("publish_time", "unknown")
+    original_domain = evidence.get("original_domain", "")
+    
+    fact_count = evidence.get("fact_count", 0)
+    inference_count = evidence.get("inference_count", 0)
+    unverified_count = evidence.get("unverified_count", 0)
+    
+    source_tag = ""
+    if is_official:
+        source_tag = "[官方一手]"
+    elif is_repost:
+        source_tag = "[二手转载]"
+    else:
+        source_tag = "[未知来源]"
+    
+    freshness_tag = {"FRESH": "🟢新", "RECENT": "🟡较新", "STALE": "🟠较旧", "OLD": "🔴旧", "UNKNOWN": "⚪未知"}.get(freshness, "⚪")
+    
+    cross_tag = ""
+    if cross_count >= 3:
+        cross_tag = "✅多源验证(%d)" % cross_count
+    elif cross_count > 0:
+        cross_tag = "⚠️部分验证(%d)" % cross_count
+    else:
+        cross_tag = "❌单一来源"
+    
+    conflict_tag = ""
+    if conflicts:
+        conflict_tag = " ⚠️有冲突报道"
+    
+    verdict_options = (
+        "A) 高价值 - 值得立刻写，信息差大\n"
+        "   → 时效新 + 来源可靠 + 别人还没覆盖\n\n"
+        "B) 中等价值 - 可以写，但需要找角度\n"
+        "   → 信息已扩散，但你有独特视角\n\n"
+        "C) 低价值/噪音 - 跳过或仅记录\n"
+        "   → 不重要 / 已被过度报道 / 无法验证"
+    )
+    
+    template = (
+        "═══════════════════════════════════════\n"
+        "   三段式速写模板 | Information Arbitrage\n"
+        "═══════════════════════════════════════\n\n"
+        
+        "【标题】\n"
+        "%s\n\n"
+        
+        "───────────────────────────────────────\n"
+        "第一段：事实（发生了什么）\n"
+        "───────────────────────────────────────\n\n"
+        "原始素材：\n"
+        "%s\n\n"
+        "你整理后的事实（1-3句话）：\n"
+        "_\n"
+        "在这里写：谁、做了什么、什么时候、结果是什么\n"
+        "_\n\n"
+        
+        "───────────────────────────────────────\n"
+        "第二段：来源（可信不可信）\n"
+        "───────────────────────────────────────\n\n"
+        "| 项目 | 状态 |\n"
+        "|------|------|\n"
+        "| 来源类型 | %s%s |\n"
+        "| 可信度 | %s (%.0f%%) |\n"
+        "| 时效性 | %s (%s) |\n"
+        "| 验证状态 | %s%s |\n"
+        
+    ) % (
+        title,
+        summary[:200] + ("..." if len(summary) > 200 else ""),
+        source_tag, " %s" % original_domain if original_domain else "",
+        cred_level, cred_score,
+        freshness_tag, pub_time,
+        cross_tag, conflict_tag
+    )
+    
+    if fact_count > 0 or inference_count > 0:
+        template += "\n| 事实/推断 | 事实%d条 / 推断%d条" % (fact_count, inference_count)
+        if unverified_count > 0:
+            template += " / 待验%d条" % unverified_count
+        template += " |\n"
+    
+    template += (
+        "\n你的核验结论（1句话）：\n"
+        "_\n"
+        "这里写：这个来源能不能信，为什么\n"
+        "_\n\n"
+        
+        "───────────────────────────────────────\n"
+        "第三段：判断（值不值得写）\n"
+        "───────────────────────────────────────\n\n"
+        "【强制选择】这件事的价值等级：\n\n"
+        "%s\n\n"
+        "你的选择：_____\n\n"
+        "一句话理由：\n"
+        "_\n"
+        "这里写：为什么选这个等级，你的依据是什么\n"
+        "_\n\n"
+        
+        "如果选A，补充：\n"
+        "  你的角度/切入点：___________________\n"
+        "  预计产出形式：快讯 / 短文 / 深度\n\n"
+        "如果选B，补充：\n"
+        "  你能加什么别人没有的：______________\n\n"
+        "如果选C，原因：\n"
+        "  _________________________________\n\n"
+        
+        "───────────────────────────────────────\n"
+        "原文链接: %s\n"
+        "═══════════════════════════════════════\n"
+    ) % (verdict_options, link)
+    
+    return template
+
 def generate_draft_framework(item: dict, mode: str = "short") -> str:
     title = item.get("title", "Untitled")
     summary = item.get("summary", "")

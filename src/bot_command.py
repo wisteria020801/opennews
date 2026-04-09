@@ -25,7 +25,7 @@ COMMANDS = {
     "/tech": "🤖 AI/科技前沿 (情报引擎)",
     "/editor": "✍️ 编辑助理 (深度降噪+写稿辅助)",
     "/write": "📝 写稿素材 (选题+角度)",
-    "/draft": "📋 半自动初稿 (骨架+证据链)",
+    "/draft": "📋 三段式速写 (事实+来源+判断)",
     "/finance": "💹 金融/加密市场",
     "/world": "🌍 全球突发新闻",
     "/military": "⚔️ 军事冲突动态",
@@ -472,18 +472,24 @@ async def handle_command(command: str, chat_id: str) -> str:
         return ""
     
     if raw_command == "/draft" or raw_command.startswith("/draft "):
-        from editor_assistant import run_editor_report, generate_draft_framework
+        from editor_assistant import run_editor_report, generate_draft_framework, generate_quick_template
         
         draft_arg = ""
-        draft_mode = "short"
+        draft_mode = "quick"
         
         if raw_command.startswith("/draft "):
             arg_part = command[len("/draft "):].strip()
             parts = arg_part.split()
             
-            mode_keywords = ["short", "deep", "long", "s", "d", "l"]
+            mode_keywords = ["short", "deep", "long", "quick", "fast", "q", "s", "d", "l"]
             if parts and parts[-1].lower() in mode_keywords:
-                draft_mode = "deep" if parts[-1].lower() in ["deep", "long", "d", "l"] else "short"
+                last = parts[-1].lower()
+                if last in ["deep", "long", "d", "l"]:
+                    draft_mode = "deep"
+                elif last in ["short", "s"]:
+                    draft_mode = "short"
+                else:
+                    draft_mode = "quick"
                 draft_arg = " ".join(parts[:-1])
             else:
                 draft_arg = arg_part
@@ -556,26 +562,46 @@ async def handle_command(command: str, chat_id: str) -> str:
         if not target_item:
             return "_Could not select item. Try /draft without arguments._"
         
-        mode_label = "SHORT (~500 words)" if draft_mode == "short" else "DEEP DIVE (~1500 words)"
-        
-        draft_output = generate_draft_framework(target_item, mode=draft_mode)
-        
-        header = (
-            "*Draft Framework [%s]*\n"
-            "%s\n"
-            "%s\n\n"
-            "=== SEMI-AUTOMATIC WORKSTATION ===\n"
-            "Bot provides: Skeleton + Evidence + Context\n"
-            "YOU provide: Judgment + Angle + Voice\n\n"
-        ) % (mode_label, selection_info, "=" * 35)
+        if draft_mode == "quick":
+            mode_label = "QUICK (三段式速写)"
+            draft_output = generate_quick_template(target_item)
+            
+            header = (
+                "*Quick Template [%s]*\n"
+                "%s\n"
+                "%s\n\n"
+                "=== 信息套利模式 ===\n"
+                "事实 + 来源 + 判断\n"
+                "目标: 快速决策，值不值得写\n\n"
+            ) % (mode_label, selection_info, "=" * 30)
+            
+            keyboard_buttons = []
+            row1 = [{"text": "→ 完整初稿 (Short)", "callback_data": "/draft %s short" % (draft_arg or "")}]
+            row2 = [{"text": "→ 深度分析 (Deep)", "callback_data": "/draft %s deep" % (draft_arg or "")}]
+            row3 = [{"text": "Back to Editor", "callback_data": "/editor"}]
+            keyboard_buttons.append(row1)
+            keyboard_buttons.append(row2)
+            keyboard_buttons.append(row3)
+        else:
+            mode_label = "SHORT (~500 words)" if draft_mode == "short" else "DEEP DIVE (~1500 words)"
+            draft_output = generate_draft_framework(target_item, mode=draft_mode)
+            
+            header = (
+                "*Draft Framework [%s]*\n"
+                "%s\n"
+                "%s\n\n"
+                "=== SEMI-AUTOMATIC WORKSTATION ===\n"
+                "Bot provides: Skeleton + Evidence + Context\n"
+                "YOU provide: Judgment + Angle + Voice\n\n"
+            ) % (mode_label, selection_info, "=" * 35)
+            
+            keyboard_buttons = []
+            row1 = [{"text": "Re-draft (Deep)", "callback_data": "/draft %s deep" % (draft_arg or "")}]
+            row2 = [{"text": "Back to Write", "callback_data": "/write"}, {"text": "Editor Analysis", "callback_data": "/editor"}]
+            keyboard_buttons.append(row1)
+            keyboard_buttons.append(row2)
         
         full_draft = header + draft_output
-        
-        keyboard_buttons = []
-        row1 = [{"text": "Re-draft (Deep)", "callback_data": "/draft %s deep" % (draft_arg or "")}]
-        row2 = [{"text": "Back to Write", "callback_data": "/write"}, {"text": "Editor Analysis", "callback_data": "/editor"}]
-        keyboard_buttons.append(row1)
-        keyboard_buttons.append(row2)
         
         keyboard = build_inline_keyboard(keyboard_buttons)
         
