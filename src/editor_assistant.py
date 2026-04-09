@@ -100,6 +100,14 @@ class CuratedItem:
     is_wrapper: bool = False
     is_reinvention: bool = False
     noise_reasons: list[str] = field(default_factory=list)
+    
+    source_tier: str = ""
+    source_credibility: float = 0.0
+    cross_source_count: int = 0
+    fact_parts: list[str] = field(default_factory=list)
+    inference_parts: list[str] = field(default_factory=list)
+    single_source_warning: bool = False
+    unverified_claims: list[str] = field(default_factory=list)
 
 
 NOISE_PATTERNS = [
@@ -229,6 +237,315 @@ def get_source_tier(source_url: str, source_name: str = "") -> dict:
                 return {**tier_info, "name": tier_name}
     
     return {**SOURCE_AUTHORITY["tier_4_unknown"], "name": "tier_4_unknown"}
+
+def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None) -> dict:
+    source = item.source or ""
+    title = item.title or ""
+    summary = item.summary or ""
+    
+    source_info = get_source_tier(source)
+    item.source_tier = source_info.get("name", "tier_4_unknown")
+    item.source_credibility = source_info.get("weight", 0.5) * 100
+    
+    if all_items:
+        title_lower = title.lower()
+        cross_count = 0
+        for other in all_items:
+            if other.link and other.link != item.link:
+                other_title = (other.title or "").lower()
+                shared_words = set(title_lower.split()) & set(other_title.split())
+                if len(shared_words) >= 3:
+                    cross_count += 1
+        item.cross_source_count = cross_count
+        item.single_source_warning = cross_count == 0
+    
+    inference_keywords = [
+        "可能", "或许", "预计", "推测", "暗示", "预示", "潜在", 
+        "可能引发", "或将", "有望", "预期", "could", "might", "likely",
+        "potentially", "expected", "suggests", "indicates", "may"
+    ]
+    
+    combined_text = "%s %s" % (title, summary)
+    sentences = re.split(r'[。！？.!?\n]', combined_text)
+    
+    fact_parts = []
+    inference_parts = []
+    unverified = []
+    
+    for sent in sentences:
+        sent = sent.strip()
+        if not sent or len(sent) < 10:
+            continue
+        
+        has_inference = any(kw in sent.lower() for kw in inference_keywords)
+        
+        number_pattern = re.compile(r'\d+[%。，.]?|\$\d+[\d,.]*|%\d+')
+        has_numbers = bool(number_pattern.search(sent))
+        
+        quote_pattern = re.compile(r'["\"].*?["\"]|said|表示|称|宣布|透露')
+        has_quote = bool(quote_pattern.search(sent))
+        
+        official_patterns = [
+            r'(?:released|announced|published|launched|发布|宣布|推出)',
+            r'(?:research|study|paper|report|研究|报告|论文)',
+            r'\$(?:\d+[\d,.]*|\d+\s*(?:million|billion|M|B))',
+        ]
+        has_official_signal = any(re.search(p, sent, re.I) for p in official_patterns)
+        
+        if has_inference and not (has_numbers or has_quote):
+            inference_parts.append(sent)
+            
+            vague_words = ["all", "every", "none", "never", "always", "完全", "所有", "从未"]
+            is_absolute = any(v in sent.lower() for v in vague_words)
+            if is_absolute:
+                unverified.append("[绝对化表述] %s" % sent[:80])
+        elif has_official_signal or has_quote or has_numbers:
+            fact_parts.append(sent)
+        else:
+            neutral_score = 0
+            if len(sent) > 50:
+                neutral_score += 1
+            entity_count = sum(1 for e in ENTITY_KEYWORDS.values() if any(kw in sent.lower() for kw in e))
+            neutral_score += entity_count
+            
+            if neutral_score >= 2:
+                fact_parts.append(sent)
+            else:
+                inference_parts.append(sent)
+    
+    item.fact_parts = fact_parts[:5]
+    item.inference_parts = inference_parts[:5]
+    item.unverified_claims = unverified[:3]
+    
+    credibility_level = ""
+    cred_score = item.source_credibility
+    
+    if item.single_source_warning:
+        cred_score -= 20
+    
+    if item.unverified_claims:
+        cred_score -= 10
+    
+    if cred_score >= 75:
+        credibility_level = "HIGH"
+    elif cred_score >= 50:
+        credibility_level = "MEDIUM"
+    else:
+        credibility_level = "LOW"
+    
+    return {
+        "source_tier": item.source_tier,
+        "source_label": source_info.get("label", "Unknown"),
+        "credibility_score": round(cred_score, 1),
+        "credibility_level": credibility_level,
+        "cross_source_count": item.cross_source_count,
+        "single_source_warning": item.single_source_warning,
+        "fact_count": len(item.fact_parts),
+        "inference_count": len(item.inference_parts),
+        "unverified_count": len(item.unverified_claims),
+        "fact_samples": item.fact_parts[:3],
+        "inference_samples": item.inference_parts[:3],
+        "unverified_samples": item.unverified_claims[:2]
+    }
+
+def generate_draft_framework(item: dict, mode: str = "short") -> str:
+    title = item.get("title", "Untitled")
+    summary = item.get("summary", "")
+    entities = item.get("tags", [])
+    core_highlight = item.get("core_highlight", "")
+    angles = item.get("draft_angles", [])
+    historical = item.get("historical_context", "")
+    reactions = item.get("competitor_reactions", {})
+    chain_pos = item.get("industry_chain_position", "")
+    source = item.get("source", "")
+    link = item.get("link", "")
+    tier = item.get("content_tier", "").upper()
+    evidence = item.get("evidence_chain", {})
+    
+    credibility_block = ""
+    if evidence:
+        cred_level = evidence.get("credibility_level", "MEDIUM")
+        cred_score = evidence.get("credibility_score", 0)
+        source_label = evidence.get("source_label", "")
+        cross_count = evidence.get("cross_source_count", 0)
+        single_warn = evidence.get("single_source_warning", False)
+        
+        warning_icon = "[!]" if single_warn else "[OK]"
+        source_status = "%s Source: %s (%.0f%%)" % (warning_icon, source_label, cred_score)
+        
+        if single_warn:
+            source_status += "\n[WARNING] Single source - not cross-verified"
+        elif cross_count >= 3:
+            source_status += "\n[CONFIRMED] %d sources reporting" % cross_count
+        elif cross_count > 0:
+            source_status += "\n[PARTIAL] %d related sources found" % cross_count
+        
+        credibility_block = (
+            "\n[EVIDENCE CHAIN]\n%s\n" % source_status
+        )
+        
+        fact_samples = evidence.get("fact_samples", [])
+        inf_samples = evidence.get("inference_samples", [])
+        unv_samples = evidence.get("unverified_samples", [])
+        
+        if fact_samples:
+            credibility_block += "\n*Verified Facts:*\n"
+            for f in fact_samples[:2]:
+                credibility_block += "  + %s...\n" % f[:60]
+        
+        if inf_samples:
+            credibility_block += "\n*Model Inferences (not facts):*\n"
+            for i in inf_samples[:2]:
+                credibility_block += "  ~ %s...\n" % i[:60]
+        
+        if unv_samples:
+            credibility_block += "\n*Needs Verification:*\n"
+            for u in unv_samples:
+                credibility_block += "  ? %s\n" % u
+    
+    if mode == "short":
+        draft = (
+            "[DRAFT MODE: Short Article (~500 words)]\n"
+            "=========================================\n\n"
+            "*Working Title:*\n%s\n\n"
+            "*Selected Angle:*\n%s\n\n"
+            "---\n\n"
+            "%s"
+            "[SECTION 1: Hook / Opening]\n"
+            "(Target: 1-2 sentences to grab attention)\n"
+            "Context: %s\n"
+            "Draft opening:\n"
+            "_\n"
+            "[YOUR HOOK HERE - Why should reader care about THIS specific news?]\n"
+            "_\n\n"
+            "[SECTION 2: Core Facts]\n"
+            "(Target: 2-3 bullet points of verifiable information)\n"
+            "Source: %s | Tier: %s\n"
+            "Key facts from material:\n"
+            "- %s\n\n"
+            "[SECTION 3: YOUR JUDGMENT] ***REQUIRED***\n"
+            "(This is where YOUR value lives - NOT the bot's analysis)\n\n"
+            "Question 1: How important is this news REALLY?\n"
+            "Options:\n"
+            "  A) Critical breakthrough - industry will change\n"
+            "  B) Important evolution - significant but expected\n"
+            "  C) Notable but incremental - worth watching\n"
+            "  D) Noise - skip it\n"
+            "Your choice: _____\n"
+            "Your reason (2-3 sentences): _________________________________\n\n"
+            "Question 2: What's your UNIQUE take?\n"
+            "(What are others missing? What's your angle?)\n"
+            "Your take: ___________________________________________________\n\n"
+            "[SECTION 4: Industry Impact]\n"
+            "Chain position: %s\n"
+            "Who's affected:\n"
+            "- Upstream: ___\n"
+            "- Midstream: ___\n"
+            "- Downstream: ___\n"
+            "(Fill based on YOUR understanding, not just bot output)\n\n"
+            "[SECTION 5: Closing / CTA]\n"
+            "(End with question or actionable insight for readers)\n"
+            "Draft closing:\n"
+            "_\n"
+            "[YOUR CLOSING THOUGHT - What should reader DO with this info?]\n"
+            "_\n\n"
+            "---\n"
+            "[WORD COUNT TARGET: ~500 | ESTIMATED TIME TO FINALIZE: 15-20 min]\n"
+            "[ORIGINAL LINK: %s]\n"
+        ) % (
+            title[:60],
+            angles[0] if angles else "To be determined",
+            credibility_block,
+            historical[:100] if historical else "Context needed",
+            source[:30], tier,
+            summary[:120] if summary else "Facts to be extracted",
+            chain_pos if chain_pos else "Position to be determined",
+            link or "Not available"
+        )
+    else:
+        draft = (
+            "[DRAFT MODE: Deep Dive Article (~1500 words)]\n"
+            "=================================================\n\n"
+            "*Working Title:*\n%s\n\n"
+            "*Subtitle/Teaser:*\n_\n"
+            "[YOUR COMPELLING TEASER - Make them want to read]\n"
+            "_\n\n"
+            "%s"
+            "---\n\n"
+            "[PART 1: Background & Context (~200 words)]\n"
+            "Historical context provided:\n"
+            "> %s\n\n"
+            "Your framing:\n"
+            "_\n"
+            "[How does this event FIT into the bigger picture? Your narrative, not bot's timeline]\n"
+            "_\n\n"
+            "[PART 2: The Event - What Happened (~300 words)]\n"
+            "Core facts from sources:\n"
+            "- Source: %s (Tier: %s)\n"
+            "- Summary: %s\n\n"
+            "Detailed breakdown:\n"
+            "1. [Official announcement key points]\n"
+            "2. [Numbers/data if available]\n"
+            "3. [Official statements vs reality check]\n\n"
+            "[PART 3: DEEP ANALYSIS - YOUR CORE VALUE (~400 words)]\n"
+            "*** THIS IS THE MOST IMPORTANT SECTION ***\n\n"
+            "3A. Your JUDGMENT on significance:\n"
+            "_\n"
+            "[Is this a real breakthrough or marketing? Why? Use evidence.]\n"
+            "_\n\n"
+            "3B. What others are MISSING:\n"
+            "_\n"
+            "[What angle hasn't been covered? What's your unique insight?]\n"
+            "_\n\n"
+            "3C. Comparison to similar events:\n"
+            "_\n"
+            "[Connect to past events. Show you understand the PATTERN, not just this one news.]\n"
+            "_\n\n"
+            "[PART 4: Industry Chain Impact (~300 words)]\n"
+            "Position: %s\n\n"
+            "Upstream effects (chips/infra):\n"
+            "_[Your analysis, not template]_\n\n"
+            "Midstream effects (models/tools):\n"
+            "_[Your analysis]_\n\n"
+            "Downstream effects (apps/users):\n"
+            "_[Your analysis]_\n\n"
+            "[PART 5: Competitor Reactions (~200 words)]\n"
+            "Predicted responses:\n"
+        ) % (
+            title[:60],
+            credibility_block,
+            historical[:150] if historical else "Historical context needed",
+            source[:30], tier,
+            summary[:150] if summary else "Event details to be extracted",
+            chain_pos if chain_pos else "Chain position to be analyzed"
+        )
+        
+        if reactions:
+            draft += "\n"
+            for comp, reaction in list(reactions.items())[:4]:
+                draft += "- %s: %s\n" % (comp, reaction)
+            draft += "\nYour analysis of these predictions:\n"
+            draft += "_[Which will happen? Which won't? Why?]_\n\n"
+        else:
+            draft += "\n_[Competitor reactions to be researched]_\n\n"
+        
+        draft += (
+            "[PART 6: Future Outlook (~100 words)]\n"
+            "Short-term (1-3 months): _______________________\n"
+            "Medium-term (6-12 months): _____________________\n"
+            "Long-term implications: ________________________\n\n"
+            "[PART 7: Sources & References]\n"
+            "- Primary: %s\n"
+            "- Additional sources to verify:\n"
+            "  1. _____________\n"
+            "  2. _____________\n"
+            "  3. _____________\n\n"
+            "---\n"
+            "[WORD COUNT TARGET: ~1500-1800 | ESTIMATED TIME TO FINALIZE: 40-60 min]\n"
+            "[REMEMBER: The value is in YOUR judgment, not the structure]\n"
+        ) % (link or "Primary source link needed")
+    
+    return draft
 
 def extract_entities(text: str) -> list[str]:
     text_lower = text.lower()
@@ -1025,6 +1342,8 @@ def _apply_rule_based_analysis(items: list[CuratedItem]) -> list[CuratedItem]:
                 "status": "[待验证]",
                 "confidence": 0.5
             }]
+            
+            build_evidence_chain(item, items)
     
     return items
 
@@ -1088,6 +1407,25 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
             print("[Editor] Notion sync skipped (optional): %s" % str(e)[:80])
             notion_sync_result = None
         
+        items_with_evidence = []
+        for c in display_items:
+            item_dict = asdict(c)
+            if c.source_tier:
+                item_dict["evidence_chain"] = {
+                    "source_tier": c.source_tier,
+                    "source_credibility": c.source_credibility,
+                    "cross_source_count": c.cross_source_count,
+                    "single_source_warning": c.single_source_warning,
+                    "fact_count": len(c.fact_parts),
+                    "inference_count": len(c.inference_parts),
+                    "fact_samples": c.fact_parts[:3],
+                    "inference_samples": c.inference_parts[:3],
+                    "unverified_samples": c.unverified_claims[:2]
+                }
+            else:
+                item_dict["evidence_chain"] = None
+            items_with_evidence.append(item_dict)
+        
         return {
             "count": len(display_items),
             "tier_breakdown": {
@@ -1097,7 +1435,7 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
                 "filtered": filtered_count
             },
             "report": report,
-            "items": [asdict(c) for c in display_items],
+            "items": items_with_evidence,
             "notion_sync": notion_sync_result
         }
         
@@ -1170,6 +1508,16 @@ _%s | 分类: %s_
                     for fc in item.fact_checks[:2]
                 ])
                 body += "🔍 事实核查: %s\n" % fc_summary
+            
+            if item.source_tier:
+                tier_icon = "[OK]" if not item.single_source_warning else "[!]"
+                cred_label = "HIGH" if item.source_credibility >= 75 else ("MEDIUM" if item.source_credibility >= 50 else "LOW")
+                body += "📎 可信度: %s %s (%.0f%%)" % (tier_icon, cred_label, item.source_credibility)
+                if item.cross_source_count > 0:
+                    body += " | 交叉验证: %d源" % item.cross_source_count
+                elif item.single_source_warning:
+                    body += " | [单一来源警告]"
+                body += "\n"
             
             body += "🔗 [原文](%s)\n\n" % item.link
         

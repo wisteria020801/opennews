@@ -24,6 +24,8 @@ COMMANDS = {
     "/new": "📰 全领域新闻 Top 10",
     "/tech": "🤖 AI/科技前沿 (情报引擎)",
     "/editor": "✍️ 编辑助理 (深度降噪+写稿辅助)",
+    "/write": "📝 写稿素材 (选题+角度)",
+    "/draft": "📋 半自动初稿 (骨架+证据链)",
     "/finance": "💹 金融/加密市场",
     "/world": "🌍 全球突发新闻",
     "/military": "⚔️ 军事冲突动态",
@@ -467,6 +469,117 @@ async def handle_command(command: str, chat_id: str) -> str:
         keyboard = build_inline_keyboard(keyboard_buttons)
         
         await send_message(chat_id, write_guide, reply_markup=keyboard)
+        return ""
+    
+    if raw_command == "/draft" or raw_command.startswith("/draft "):
+        from editor_assistant import run_editor_report, generate_draft_framework
+        
+        draft_arg = ""
+        draft_mode = "short"
+        
+        if raw_command.startswith("/draft "):
+            arg_part = command[len("/draft "):].strip()
+            parts = arg_part.split()
+            
+            mode_keywords = ["short", "deep", "long", "s", "d", "l"]
+            if parts and parts[-1].lower() in mode_keywords:
+                draft_mode = "deep" if parts[-1].lower() in ["deep", "long", "d", "l"] else "short"
+                draft_arg = " ".join(parts[:-1])
+            else:
+                draft_arg = arg_part
+        
+        await send_message(chat_id, "*Draft Workstation v1.0*\n\n_Building semi-automatic draft framework..._")
+        
+        result = await run_editor_report(category="tech", chat_id=chat_id, max_items=20)
+        
+        items = result.get("items", [])
+        gold_items = [i for i in items if i.get("content_tier") == "gold"]
+        silver_items = [i for i in items if i.get("content_tier") == "silver"]
+        all_high_value = gold_items + silver_items
+        
+        if not all_high_value:
+            return "_No high-value material for drafting. Run /editor first._"
+        
+        target_item = None
+        selection_info = ""
+        
+        if draft_arg:
+            try:
+                item_num = int(draft_arg)
+                if 1 <= item_num <= len(all_high_value):
+                    target_item = all_high_value[item_num - 1]
+                    selection_info = "Item #%d selected" % item_num
+                else:
+                    return "_Invalid number. Available: 1-%d_\n_Use: /draft <number> [short|deep]_" % len(all_high_value)
+            except ValueError:
+                keyword_lower = draft_arg.lower()
+                matched_items = []
+                
+                for item in all_high_value:
+                    title_lower = (item.get("title", "") or "").lower()
+                    summary_lower = (item.get("summary", "") or "").lower()
+                    tags_str = " ".join(str(t) for t in item.get("tags", []))
+                    combined = "%s %s %s" % (title_lower, summary_lower, tags_str)
+                    
+                    if keyword_lower in combined:
+                        score = 0
+                        if keyword_lower in title_lower:
+                            score += 10
+                        if keyword_lower in summary_lower:
+                            score += 5
+                        matched_items.append((item, score))
+                
+                matched_items.sort(key=lambda x: x[1], reverse=True)
+                
+                if matched_items:
+                    target_item = matched_items[0][0]
+                    selection_info = "Matched: '%s'" % draft_arg
+                    
+                    if len(matched_items) > 1:
+                        match_list = "*Other matches:*\n"
+                        for idx, (m_item, m_score) in enumerate(matched_items[1:4], 1):
+                            match_list += "%d. %s\n" % (idx + 1, (m_item.get("title", "") or "")[:50])
+                        await send_message(chat_id, match_list)
+                else:
+                    suggest = []
+                    for item in all_high_value[:5]:
+                        suggest.extend([str(t) for t in item.get("tags", [])[:2]])
+                    return (
+                        "_No match for '%s'_\n\n"
+                        "*Try:*\n%s\n\n"
+                        "_Or: /draft [for auto-select]_"
+                    ) % (draft_arg, ", ".join(list(set(suggest))[:6]) if suggest else "_Run /editor first_")
+        else:
+            target_item = all_high_value[0]
+            selection_info = "Auto-selected top item"
+        
+        if not target_item:
+            return "_Could not select item. Try /draft without arguments._"
+        
+        mode_label = "SHORT (~500 words)" if draft_mode == "short" else "DEEP DIVE (~1500 words)"
+        
+        draft_output = generate_draft_framework(target_item, mode=draft_mode)
+        
+        header = (
+            "*Draft Framework [%s]*\n"
+            "%s\n"
+            "%s\n\n"
+            "=== SEMI-AUTOMATIC WORKSTATION ===\n"
+            "Bot provides: Skeleton + Evidence + Context\n"
+            "YOU provide: Judgment + Angle + Voice\n\n"
+        ) % (mode_label, selection_info, "=" * 35)
+        
+        full_draft = header + draft_output
+        
+        keyboard_buttons = []
+        row1 = [{"text": "Re-draft (Deep)", "callback_data": "/draft %s deep" % (draft_arg or "")}]
+        row2 = [{"text": "Back to Write", "callback_data": "/write"}, {"text": "Editor Analysis", "callback_data": "/editor"}]
+        keyboard_buttons.append(row1)
+        keyboard_buttons.append(row2)
+        
+        keyboard = build_inline_keyboard(keyboard_buttons)
+        
+        await send_message(chat_id, full_draft, reply_markup=keyboard)
         return ""
     
     if raw_command.startswith("/search "):
