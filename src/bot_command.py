@@ -329,9 +329,32 @@ async def handle_command(command: str, chat_id: str) -> str:
         result = await run_editor_report(category="tech", chat_id=chat_id, max_items=20)
         
         items = result.get("items", [])
+        
+        if items:
+            print("[Draft] Total items: %d" % len(items))
+            sample_tiers = set(i.get("content_tier", "NONE") for i in items[:5])
+            print("[Draft] Sample tiers: %s" % sample_tiers)
+            for idx, i in enumerate(items[:3]):
+                print("[Draft] Item %d: tier=%s title=%s" % (idx, i.get("content_tier"), (i.get("title") or "")[:50]))
+        
         gold_items = [i for i in items if i.get("content_tier") == "gold"]
         silver_items = [i for i in items if i.get("content_tier") == "silver"]
         all_high_value = gold_items + silver_items
+        
+        if not all_high_value and items:
+            print("[Draft] No gold/silver found, trying case-insensitive match...")
+            gold_items = [i for i in items if str(i.get("content_tier", "")).lower() == "gold"]
+            silver_items = [i for i in items if str(i.get("content_tier", "")).lower() == "silver"]
+            all_high_value = gold_items + silver_items
+            if all_high_value:
+                print("[Draft] Found %d items with case-insensitive match" % len(all_high_value))
+        
+        if not all_high_value and items:
+            print("[Draft] Still no matches. Using top items by tier order...")
+            tier_order = {"gold": 0, "silver": 1, "bronze": 2, "filter": 3}
+            sorted_items = sorted(items, key=lambda x: tier_order.get(str(x.get("content_tier", "")).lower(), 99))
+            all_high_value = sorted_items[:3]
+            print("[Draft] Fallback: using top %d items" % len(all_high_value))
         
         if not all_high_value:
             return "_No high-value material available. Try /editor first._"
@@ -502,6 +525,16 @@ async def handle_command(command: str, chat_id: str) -> str:
         gold_items = [i for i in items if i.get("content_tier") == "gold"]
         silver_items = [i for i in items if i.get("content_tier") == "silver"]
         all_high_value = gold_items + silver_items
+        
+        if not all_high_value and items:
+            gold_items = [i for i in items if str(i.get("content_tier", "")).lower() == "gold"]
+            silver_items = [i for i in items if str(i.get("content_tier", "")).lower() == "silver"]
+            all_high_value = gold_items + silver_items
+        
+        if not all_high_value and items:
+            tier_order = {"gold": 0, "silver": 1, "bronze": 2, "filter": 3}
+            sorted_items = sorted(items, key=lambda x: tier_order.get(str(x.get("content_tier", "")).lower(), 99))
+            all_high_value = sorted_items[:3]
         
         if not all_high_value:
             return "_No high-value material for drafting. Run /editor first._"

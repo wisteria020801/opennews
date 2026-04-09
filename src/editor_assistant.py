@@ -489,16 +489,17 @@ def generate_quick_template(item: dict) -> str:
     summary = item.get("summary", "")
     link = item.get("link", "")
     source = item.get("source", "")
-    tier = (item.get("content_tier") or "").upper()
-    evidence = item.get("evidence_chain", {})
+    tier_raw = item.get("content_tier", ContentTier.FILTER)
+    tier = str(tier_raw).upper() if tier_raw else "UNKNOWN"
+    evidence = item.get("evidence_chain") or {}
     
-    cred_score = evidence.get("credibility_score", 0)
-    cred_level = evidence.get("credibility_level", "UNKNOWN")
-    is_official = evidence.get("is_official_source", False)
-    is_repost = evidence.get("is_repost", False)
-    freshness = evidence.get("source_freshness", "UNKNOWN")
-    cross_count = evidence.get("cross_source_count", 0)
-    single_warn = evidence.get("single_source_warning", True)
+    cred_score = evidence.get("credibility_score", 0) if evidence else 0
+    cred_level = evidence.get("credibility_level", "UNKNOWN") if evidence else "UNKNOWN"
+    is_official = evidence.get("is_official_source", False) if evidence else False
+    is_repost = evidence.get("is_repost", False) if evidence else False
+    freshness = evidence.get("source_freshness", "UNKNOWN") if evidence else "UNKNOWN"
+    cross_count = evidence.get("cross_source_count", 0) if evidence else 0
+    single_warn = evidence.get("single_source_warning", True) if evidence else True
     conflicts = evidence.get("conflicting_info", [])
     pub_time = evidence.get("publish_time", "unknown")
     original_domain = evidence.get("original_domain", "")
@@ -624,8 +625,9 @@ def generate_draft_framework(item: dict, mode: str = "short") -> str:
     chain_pos = item.get("industry_chain_position", "")
     source = item.get("source", "")
     link = item.get("link", "")
-    tier = item.get("content_tier", "").upper()
-    evidence = item.get("evidence_chain", {})
+    tier_raw = item.get("content_tier", ContentTier.FILTER)
+    tier = str(tier_raw).upper() if tier_raw else "UNKNOWN"
+    evidence = item.get("evidence_chain") or {}
     
     credibility_block = ""
     if evidence:
