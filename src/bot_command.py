@@ -969,6 +969,9 @@ async def register_bot_commands():
     commands = [
         {"command": "new", "description": "📰 全领域新闻 Top 10"},
         {"command": "tech", "description": "🤖 AI/科技前沿 (情报引擎)"},
+        {"command": "editor", "description": "✍️ 编辑助理 (深度降噪+写稿辅助)"},
+        {"command": "write", "description": "📝 写稿素材 (选题+角度)"},
+        {"command": "draft", "description": "📋 三段式速写 (事实+来源+判断)"},
         {"command": "finance", "description": "💹 金融/加密市场"},
         {"command": "world", "description": "🌍 全球突发新闻"},
         {"command": "military", "description": "⚔️ 军事冲突动态"},
@@ -993,8 +996,10 @@ async def register_bot_commands():
     chat_commands = [
         {"command": "new", "description": "📰 最新全领域新闻"},
         {"command": "tech", "description": "🤖 AI/科技情报报告"},
+        {"command": "editor", "description": "✍️ 编辑助理分析"},
+        {"command": "write", "description": "📝 写稿素材库"},
+        {"command": "draft", "description": "📋 三段式速写模板"},
         {"command": "finance", "description": "💹 金融市场动态"},
-        {"command": "oracle", "description": "🔮 Oracle深度分析"},
         {"command": "search", "description": "🔍 搜索关键词"},
         {"command": "digest", "description": "📋 今日摘要"},
         {"command": "status", "description": "📊 系统状态"},
@@ -1004,7 +1009,7 @@ async def register_bot_commands():
     result2 = await call_telegram_api(
         "setMyCommands",
         commands=chat_commands,
-        scope={"type": "chat"}
+        scope={"type": "chat", "chat_id": DEFAULT_CHAT_ID}
     )
     if result2.get("ok"):
         print("  [OK] Chat group menu registered")
