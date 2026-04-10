@@ -84,6 +84,54 @@ SOURCES = [
     # Tier 6: Cloud/Enterprise AI
     ("AWS Machine Learning Blog", "https://aws.amazon.com/blogs/machine-learning/feed/"),
     ("Google Cloud AI Blog", "https://cloud.google.com/blog/ai-and-machine-learning/rss"),
+
+    # ════════════════════════════════════════
+    # 📡 四大情报主线 (v2.2 — 公众号数据源架构)
+    # ════════════════════════════════════════
+
+    # ── 主线一：开源与开发者前沿 ──
+    ("Hugging Face Blog", "https://huggingface.co/blog/feed.xml"),
+    ("Hugging Face Papers (RSSHub)", "https://rsshub.app/huggingface/daily_papers"),
+    ("GitHub Trending (Atom)", "https://github.com/trending?since=daily&spoken_language_code=en"),
+    ("GitHub Trending Python (RSSHub)", "https://rsshub.app/github/trending/python?since=daily"),
+    ("PapersWithCode (Latest)", "https://paperswithcode.com/rss"),
+
+    # ── 主线二：AI 巨头与学术核心 ──
+    ("OpenAI News", "https://openai.com/news/rss.xml"),
+    ("OpenAI Research (Index)", "https://openai.com/research/index/rss.xml"),
+    ("DeepMind Blog", "https://deepmind.google/blog/rss.xml"),
+    ("Google Research AI", "https://blog.google/technology/ai/rss/"),
+    ("Google Brain (Keyword RSS)", "https://news.google.com/rss/search?q=site:blog.google/technology/ai+OR+site:ai.google+OR+site:deepmind.google+when:7d"),
+    ("Meta AI (Keyword RSS)", "https://news.google.com/rss/search?q=site:ai.meta.com+OR+site:about.meta/blog+OR+site:research.meta.com+when:7d"),
+    ("Anthropic (Keyword RSS)", "https://news.google.com/rss/search?q=site:anthropic.com+OR+site:www.anthropic.com/news+when:7d"),
+    ("Mistral AI (Keyword RSS)", "https://news.google.com/rss/search?q=site:mistral.ai/news+OR+site:mistral.ai+when:7d"),
+    ("xAI/Grok (Keyword RSS)", "https://news.google.com/rss/search?q=site:x.ai/blog+OR+site:x.ai+when:7d"),
+    ("arXiv CS.AI (Papers)", "https://rss.arxiv.org/rss/cs.AI"),
+    ("arXiv CS.CL (NLP)", "https://rss.arxiv.org/rss/cs.CL"),
+    ("arXiv CS.CV (Computer Vision)", "https://rss.arxiv.org/rss/cs.CV"),
+    ("arXiv Stat.ML (Machine Learning)", "https://rss.arxiv.org/rss/stat.ML"),
+    ("Distill.pub (Visual ML Research)", "https://distill.pub/rss.xml"),
+
+    # ── 主线三：黑客与极客社区 ──
+    ("Hacker News (Front Page)", "https://news.ycombinator.com/rss"),
+    ("Hacker News (Ask HN, Tech)", "https://hnrss.org/ask?count=20"),
+    ("Hacker News (Show HN, Projects)", "https://hnrss.org/show?count=20"),
+    ("Hacker News (AI Filtered)", "https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT+OR+machine+learning&count=20"),
+    ("Reddit r/MachineLearning", "https://www.reddit.com/r/MachineLearning/.rss?limit=15"),
+    ("Reddit r/LocalLLaMA", "https://www.reddit.com/r/LocalLLaMA/.rss?limit=15"),
+    ("Reddit r/singularity", "https://www.reddit.com/r/singularity/.rss?limit=10"),
+    ("Lobsters (Hacker News Alt)", "https://lobste.rs/rss"),
+
+    # ── 主线四：商业与资本暗流 ──
+    ("All-In Podcast (Keyword RSS)", "https://news.google.com/rss/search?q=%22All-In+Podcast%22+OR+%22AllInPod%22+Chamath+Sacks+Friedberg+when:30d"),
+    ("Lex Fridman Podcast", "https://lexfridman.com/podcast/rss"),
+    ("20VC (Harry Stebbings)", "https://news.google.com/rss/search?q=site:20vc.com+OR+site:harrystebbings.com+when:14d"),
+    ("a16z (Keyword RSS)", "https://news.google.com/rss/search?q=site:a16z.com+OR+site:a16z.substack.com+when:14d"),
+    ("Sequoia Capital (Keyword RSS)", "https://news.google.com/rss/search?q=site:sequoiacap.com+when:14d"),
+    ("Y Combinator Blog", "https://www.ycombinator.com/blog/rss/"),
+    ("Crunchbase AI Funding (Keyword RSS)", "https://news.google.com/rss/search?q=site:crunchbase.com+AI+funding+OR+venture+when:7d"),
+    ("TechCrunch (Startups/Funding)", "https://techcrunch.com/category/startups/feed/"),
+    ("The Information (AI, Keyword RSS)", "https://news.google.com/rss/search?q=site:theinformation.com+AI+when:14d"),
 ]
 
 KEYWORDS = re.compile(r"(SEC|ETF|listing|suspend|halt|hack|merger|liquidation|bankruptcy|court|lawsuit|approval|上市|暂停|黑客|诉讼|合并|破产|下架|批准|传闻|war|conflict|strike|election|policy|scandal|movie|star|army|navy|air force|missile|tank|drone|interest rate|fed|cpi|inflation|rates|rate hike|cut|stimulus|gdp|nfp|payroll|oil|gold|btc|eth|crypto|regulation|sanction|trade war|tariff|video|trailer|interview|AI|artificial intelligence|LLM|GPT|Claude|Gemini|OpenAI|Anthropic|DeepMind|Google AI|model release|API|agent|MCP|machine learning|neural network|transformer|diffusion|training|inference|GPU|chip|semiconductor|NVIDIA|open source|framework|fine-tune|RAG|embedding|benchmark|SOTA|AGI|safety|alignment|regulation|AI act|chip act|data center|compute|scaling|reasoning|multimodal|vision|NLP|robotics|autonomous|开源|大模型|人工智能|芯片|算力|推理|训练)", re.I)
@@ -106,12 +154,31 @@ TECH_KEYWORDS = re.compile(
     r"code generation|Copilot|Cursor|IDE|developer tool|"
     r"startup|funding|series.|valuation|IPO|acquisition|unicorn|"
     r"research paper|arXiv|conference|NeurIPS|ICML|ICLR|CVPR|ACL|EMNLP|"
+    r"VC|venture capital|pitch|seed|Series A|Series B|growth round|down round|"
+    r"podcast|All.In|Lex Fridman|a16z|Sequoia|Y Combinator|Crunchbase|"
+    r"Hacker News|Reddit|upvote|trending|GitHub star|repo|PR|commit|"
     r"开源|大模型|人工智能|机器学习|深度学习|神经网络|芯片|算力|推理|训练|"
-    r"生成式|多模态|智能体|自动驾驶|计算机视觉|自然语言处理)",
+    r"生成式|多模态|智能体|自动驾驶|计算机视觉|自然语言处理|"
+    r"融资|估值|创投|天使轮|A轮|B轮|独角兽|上市)",
     re.I
 )
 
 PRIORITY = {
+    # === Tier 0: 四大情报主线核心源 (最高优先) ===
+    "OpenAI": 0,
+    "Anthropic": 0,
+    "DeepMind": 0,
+    "Google Research": 0,
+    "Hugging Face": 0,
+    "arXiv": 0,
+    "PapersWithCode": 0,
+    "GitHub Trending": 0,
+    "Hacker News": 0,
+    "a16z": 0,
+    "Sequoia": 0,
+    "Lex Fridman": 0,
+
+    # === Tier 1: 高信号源 ===
     "Wallstreetcn": 1,
     "Jin10": 1,
     "Reuters": 1,
@@ -120,21 +187,28 @@ PRIORITY = {
     "Foresight News": 1,
     "Investing.com": 1,
     "Yahoo Finance": 1,
-    "OpenAI": 1,
-    "DeepMind": 1,
-    "Anthropic": 1,
-    "Google Research": 1,
     "MIT Technology Review": 1,
     "The Decoder": 1,
-    "Hugging Face": 1,
     "TechCrunch": 1,
     "Ars Technica": 1,
     "VentureBeat": 1,
     "Ben's Bites": 1,
-    "arXiv": 1,
     "AWS": 1,
     "Google Cloud": 1,
+    "Meta AI": 1,
+    "Mistral": 1,
+    "xAI": 1,
+    "Distill": 1,
+    "Reddit": 1,
+    "Lobsters": 1,
+    "20VC": 1,
+    "Y Combinator": 1,
+    "Crunchbase": 1,
+    "PitchBook": 1,
+
+    # === Tier 2: 重要辅助源 ===
     "MIRI": 2,
+    "BAIR": 2,
     "CNN World": 2,
     "Al Jazeera": 2,
     "CoinDesk": 2,
@@ -145,14 +219,15 @@ PRIORITY = {
     "Military.com": 2,
     "YouTube": 2,
     "Twitter": 2,
-    "Variety": 2,
-    "TMZ": 2,
-    "E! Online": 3,
     "The Verge": 2,
     "Wired": 2,
     "KDnuggets": 2,
-    "BAIR": 2,
-    "Papers with Code": 2,
+    "All-In": 2,
+
+    # === Tier 3: 一般源 ===
+    "Variety": 3,
+    "TMZ": 3,
+    "E! Online": 3,
 }
 
 
@@ -178,6 +253,12 @@ HIGH_WEIGHT_ENTITIES = {
     "ETF", "IPO", "MERGER", "ACQUISITION", "BANKRUPTCY", "LIQUIDATION",
     "AI", "ARTIFICIAL INTELLIGENCE", "AGI", "LLM", "TRANSFORMER",
     "DEEPMIND", "HUGGING FACE", "LANGCHAIN", "PYTORCH", "TENSORFLOW",
+    "MISTRAL", "XAI", "GROK", "LLAMA", "QWEN", "DEEPSEEK",
+    "A16Z", "SEQUOIA", "Y COMBINATOR", "CRUNCHBASE",
+    "HACKER NEWS", "REDDIT", "GITHUB", "HUGGINGFACE",
+    "ARXIV", "NEURIPS", "ICML", "ICLR", "CVPR",
+    "VC", "VENTURE CAPITAL", "SERIES A", "SERIES B", "SEED ROUND",
+    "UNICORN", "VALUATION", "DOWNSIDE", "DOWNGRADE",
 }
 
 
@@ -402,11 +483,13 @@ def _parse_rss(xml: str, source: str) -> list[dict]:
 
 async def _fetch(client: httpx.AsyncClient, name: str, url: str) -> list[dict]:
     try:
-        # Add headers to mimic browser and avoid 403/301 blocks
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "application/rss+xml, application/xml, text/xml, */*"
+            "Accept": "application/rss+xml, application/xml, text/xml, application/atom+xml, */*"
         }
+        if "reddit.com" in url:
+            headers["User-Agent"] = "OpenNews-Aggregator/2.2 (RSS Reader; contact for issues)"
+        
         resp = await client.get(url, timeout=10.0, headers=headers, follow_redirects=True)
         resp.raise_for_status()
         return _parse_rss(resp.text, name)
