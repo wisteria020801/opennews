@@ -56,9 +56,16 @@ async def call_telegram_api(method: str, **kwargs) -> dict:
     if not BOT_TOKEN:
         return {}
     url = f"https://api.telegram.org/bot{BOT_TOKEN}/{method}"
+    
+    custom_timeout = kwargs.pop("_timeout", None)
+    if custom_timeout:
+        timeout = httpx.Timeout(custom_timeout + 5, connect=10.0)
+    else:
+        timeout = 15.0
+    
     try:
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.post(url, json=kwargs, timeout=15.0)
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            resp = await client.post(url, json=kwargs)
             return resp.json()
     except Exception as e:
         print("[Telegram API] %s error: %s" % (method, e))
@@ -912,7 +919,8 @@ async def get_updates(offset: int = 0, timeout: int = 30) -> tuple[list[dict], i
         "getUpdates",
         offset=offset,
         timeout=timeout,
-        allowed_updates=["message", "callback_query"]
+        allowed_updates=["message", "callback_query"],
+        _timeout=timeout
     )
     
     if not result.get("ok"):
@@ -1061,9 +1069,13 @@ async def run_bot():
     print("")
     
     offset = 0
+    consecutive_errors = 0
     while True:
         try:
             updates, offset = await get_updates(offset, timeout=30)
+            
+            if updates:
+                consecutive_errors = 0
             
             for update in updates:
                 await process_update(update)
@@ -1072,8 +1084,10 @@ async def run_bot():
             print("\n[STOP] Bot stopped by user.")
             break
         except Exception as e:
-            print("[Error] %s" % e)
-            await asyncio.sleep(5)
+            consecutive_errors += 1
+            if consecutive_errors <= 3 or consecutive_errors % 10 == 0:
+                print("[Error #%d] %s" % (consecutive_errors, e))
+            await asyncio.sleep(min(consecutive_errors * 2, 30))
 
 
 async def test_single_command(command: str, chat_id: str = None):
