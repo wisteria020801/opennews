@@ -544,7 +544,7 @@ def _event_similarity(item_a: CuratedItem, item_b: CuratedItem) -> float:
         union = set(sig_a.split("|")) | set(sig_b.split("|"))
         base_sim = len(shared) / len(union) if union else 0.0
     
-    title_sim = SequenceMatcher(None, item_a.title.lower(), item_b.title.lower).ratio()
+    title_sim = SequenceMatcher(None, item_a.title.lower(), item_b.title.lower()).ratio()
     
     entity_a = set(re.findall(r'[A-Z][a-z]+|[A-Z]{2,}', item_a.title))
     entity_b = set(re.findall(r'[A-Z][a-z]+|[A-Z]{2,}', item_b.title))
