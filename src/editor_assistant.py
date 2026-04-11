@@ -115,6 +115,36 @@ class CuratedItem:
     original_domain: str = ""
     conflicting_info: list[dict] = field(default_factory=list)
     source_freshness: str = ""
+    
+    # ══════════════════════════════════════
+    # 5-Layer Intelligence Workstation (v3.0)
+    # ══════════════════════════════════════
+    
+    # Layer 2: Event Dedup (去重层)
+    event_id: str = ""
+    merged_sources: list[str] = field(default_factory=list)
+    merged_links: list[str] = field(default_factory=list)
+    is_merged_event: bool = False
+    dedup_confidence: float = 0.0
+    
+    # Layer 3: 3-Dimension Scoring (重要性评分层)
+    attention_score: float = 0.0
+    tech_depth_score: float = 0.0
+    industry_impact_score: float = 0.0
+    intelligence_grade: str = ""  # S/A/B/C/D
+    
+    # Layer 4: Why It Matters (解释层)
+    why_it_matters: str = ""
+    significance_level: str = ""  # TRANSFORMATIVE / MAJOR / MODERATE / MINOR
+    key_takeaways: list[str] = field(default_factory=list)
+    context_gap: str = ""  # What most people miss about this
+    
+    # Layer 5: Action Plan (行动层)
+    action_plan: dict = field(default_factory=dict)
+    next_steps: list[str] = field(default_factory=list)
+    people_to_follow: list[str] = field(default_factory=list)
+    directions_to_watch: list[str] = field(default_factory=list)
+    time_sensitivity: str = ""  # NOW / THIS_WEEK / THIS_MONTH / MONITOR
 
 
 NOISE_PATTERNS = [
@@ -483,6 +513,103 @@ def build_evidence_chain(item: CuratedItem, all_items: list[CuratedItem] = None)
         "original_domain": item.original_domain,
         "conflicting_info": item.conflicting_info
     }
+
+
+def _extract_event_signature(title: str, summary: str = "") -> str:
+    import re
+    text = (title + " " + summary).lower()
+    
+    entities = re.findall(r'(openai|anthropic|deepmind|google|meta|mistral|xai|nvidia|apple|microsoft|amazon|tesla|spacex)', text)
+    actions = re.findall(r'(release|launch|announce|acquire|fund|invest|ban|regulate|sue|hire|fire|quit|merge|ipo|raise|cut|delay|recall)', text)
+    objects = re.findall(r'(gpt|claude|gemini|llama|model|api|chip|gpu|robot|agent|dataset|benchmark|paper|patent|license|policy|law|bill)', text)
+    
+    sig_parts = sorted(set(entities))[:3] + sorted(set(actions))[:2] + sorted(set(objects))[:2]
+    return "|".join(sig_parts) if sig_parts else title[:40].replace(" ", "_")
+
+
+def _event_similarity(item_a: CuratedItem, item_b: CuratedItem) -> float:
+    import re
+    from difflib import SequenceMatcher
+    
+    sig_a = _extract_event_signature(item_a.title, item_a.summary)
+    sig_b = _extract_event_signature(item_b.title, item_b.summary)
+    
+    if not sig_a or not sig_b:
+        return 0.0
+    
+    if sig_a == sig_b:
+        base_sim = 0.9
+    else:
+        shared = set(sig_a.split("|")) & set(sig_b.split("|"))
+        union = set(sig_a.split("|")) | set(sig_b.split("|"))
+        base_sim = len(shared) / len(union) if union else 0.0
+    
+    title_sim = SequenceMatcher(None, item_a.title.lower(), item_b.title.lower).ratio()
+    
+    entity_a = set(re.findall(r'[A-Z][a-z]+|[A-Z]{2,}', item_a.title))
+    entity_b = set(re.findall(r'[A-Z][a-z]+|[A-Z]{2,}', item_b.title))
+    entity_overlap = len(entity_a & entity_b) / max(len(entity_a | entity_b), 1)
+    
+    return 0.4 * base_sim + 0.35 * title_sim + 0.25 * entity_overlap
+
+
+def event_dedup(items: list[CuratedItem], threshold: float = 0.55) -> list[CuratedItem]:
+    if len(items) <= 1:
+        return items
+    
+    n = len(items)
+    parent_map = {}
+    
+    for i in range(n):
+        for j in range(i + 1, n):
+            sim = _event_similarity(items[i], items[j])
+            
+            if sim >= threshold:
+                score_i = items[i].overall_score or items[i].source_credibility or 0.5
+                score_j = items[j].overall_score or items[j].source_credibility or 0.5
+                
+                if score_i >= score_j:
+                    parent_map[j] = i
+                else:
+                    parent_map[i] = j
+    
+    result = []
+    used_children = set()
+    
+    for idx, item in enumerate(items):
+        if idx in parent_map and idx not in used_children:
+            continue
+        
+        if idx in used_children:
+            continue
+        
+        children = [c for c, p in parent_map.items() if p == idx]
+        
+        if children:
+            merged_item = item
+            
+            all_sources = [item.source] + [items[c].source for c in children]
+            all_links = [item.link] + [items[c].link for c in children if items[c].link and items[c].link != item.link]
+            
+            merged_item.event_id = "evt_%s" % _extract_event_signature(item.title)[:20]
+            merged_item.merged_sources = list(set(all_sources))
+            merged_item.merged_links = all_links[:10]
+            merged_item.is_merged_event = True
+            merged_item.dedup_confidence = min(0.95, 0.7 + 0.05 * len(children))
+            merged_item.cross_source_count = max(merged_item.cross_source_count, len(all_sources))
+            
+            summaries = [s for s in [item.summary] + [items[c].summary for c in children] if s]
+            if len(summaries) > 1:
+                merged_item.summary = summaries[0]
+                merged_item.core_highlight = " [%d源验证: %s]" % (len(all_sources), ", ".join(set(all_sources)))
+            
+            used_children.update(children)
+            result.append(merged_item)
+        else:
+            result.append(item)
+    
+    print("[Dedup] %d items → %d events (%d merged)" % (n, len(result), n - len(result)))
+    return result
 
 def generate_quick_template(item: dict) -> str:
     title = item.get("title", "Untitled")
@@ -1529,6 +1656,25 @@ async def gemini_deep_analyze(curated_items: list[CuratedItem]) -> list[CuratedI
                         item.draft_angles = a.get("draft_angles", [])
                         
                         item.editor_note = a.get("editor_note", "")
+                        
+                        scores = a.get("scores", {})
+                        if isinstance(scores, dict):
+                            item.attention_score = float(scores.get("attention_score", 0))
+                            item.tech_depth_score = float(scores.get("tech_depth_score", 0))
+                            item.industry_impact_score = float(scores.get("industry_impact_score", 0))
+                        
+                        item.intelligence_grade = a.get("intelligence_grade", "")
+                        
+                        item.why_it_matters = a.get("why_it_matters", "")
+                        item.significance_level = a.get("significance_level", "")
+                        item.key_takeaways = a.get("key_takeaways", [])
+                        item.context_gap = a.get("context_gap", "")
+                        
+                        item.action_plan = a.get("action_plan", {})
+                        item.next_steps = a.get("next_steps", [])
+                        item.people_to_follow = a.get("people_to_follow", [])
+                        item.directions_to_watch = a.get("directions_to_watch", [])
+                        item.time_sensitivity = a.get("time_sensitivity", "")
                 
                 print("[Editor] Deep analysis complete for %d items" % len(analyzed))
                 
@@ -1665,6 +1811,8 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
         curated = await deep_curate(items)
         print("[Editor] After curation: %d items" % len(curated))
         
+        curated = event_dedup(curated)
+        
         gold_count = sum(1 for c in curated if c.content_tier == ContentTier.GOLD)
         silver_count = sum(1 for c in curated if c.content_tier == ContentTier.SILVER)
         bronze_count = sum(1 for c in curated if c.content_tier == ContentTier.BRONZE)
@@ -1681,6 +1829,8 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
         display_items = [c for c in analyzed if c.content_tier != ContentTier.FILTER]
         
         report = _format_editor_report(display_items, category)
+        brief_report = _format_brief_report(display_items, category)
+        action_report = _format_action_plan(display_items, category)
         
         elapsed = time.time() - start_time
         print("[Editor] Report generated in %.1fs" % elapsed)
@@ -1734,6 +1884,8 @@ async def run_editor_report(category: str = "tech", chat_id: str = None,
                 "filtered": filtered_count
             },
             "report": report,
+            "brief_report": brief_report,
+            "action_report": action_report,
             "items": items_with_evidence,
             "notion_sync": notion_sync_result
         }
@@ -1835,6 +1987,173 @@ _%s | 分类: %s_
     footer = """
 _*Editor v3.0: 深度降噪 + 关联分析 + 写稿辅助*_
 _信噪比优化: 已过滤噪音内容_"""
+    
+    return header + body + footer
+
+
+def _format_brief_report(items: list[CuratedItem], category: str) -> str:
+    now = datetime.now(timezone(timedelta(hours=8)))
+    
+    s_items = sorted(items, key=lambda x: (
+        x.attention_score or x.overall_score or 0
+    ), reverse=True)
+    
+    top_items = [i for i in s_items if i.intelligence_grade in ("S", "A")][:8]
+    other_items = [i for i in s_items if i.intelligence_grade not in ("S", "A")][:10]
+    
+    header = """**⚡ 今日速报 — OpenNews Intelligence v3.0**
+_%s | %s | %d条情报_
+
+━━━ 🚨 S/A级 变局/重大 ━━━
+""" % (now.strftime("%Y-%m-%d %H:%M"), category.upper(), len(items))
+    
+    body = ""
+    
+    for i, item in enumerate(top_items, 1):
+        grade_icon = {"S": "🔴", "A": "🟠"}.get(item.intelligence_grade, "⚪")
+        attn = item.attention_score or item.overall_score or 0
+        
+        body += "%s **%d.** %s `%.1f`\n" % (grade_icon, i, item.title[:70], attn)
+        
+        if item.what:
+            body += "   %s\n" % item.what[:100]
+        
+        if item.key_takeaways:
+            tk_str = " · ".join(item.key_takeaways[:3])
+            body += "   💡 %s\n" % tk_str
+        
+        if item.merged_sources:
+            src_tag = "[%d源]" % len(item.merged_sources)
+            body += "   📎 %s %s\n" % (item.source, src_tag)
+        
+        body += "\n"
+    
+    if other_items:
+        body += """━━━ 📋 值得了解 ━━━\n"""
+        for item in other_items[:8]:
+            grade_icon = {"B": "🟡", "C": "⚪", "D": "⚫"}.get(item.intelligence_grade, "·")
+            body += "%s %s `%s`\n" % (grade_icon, item.title[:60], item.signal_type.value.upper()[:4])
+        body += "\n"
+    
+    s_count = sum(1 for i in items if i.intelligence_grade == "S")
+    a_count = sum(1 for i in items if i.intelligence_grade == "A")
+    merged_count = sum(1 for i in items if i.is_merged_event)
+    
+    footer = (
+        "_S:%d A:%d | 去重合并: %d事件_"
+        "_数据源: 55+ RSS | Engine: Gemini v3.0_"
+        % (s_count, a_count, merged_count)
+    )
+    
+    return header + body + footer
+
+
+def _format_action_plan(items: list[CuratedItem], category: str) -> str:
+    now = datetime.now(timezone(timedelta(hours=8)))
+    
+    now_actions = []
+    week_actions = []
+    month_actions = []
+    monitor_actions = []
+    
+    all_people = set()
+    all_directions = set()
+    
+    for item in items:
+        if not item.next_steps and not item.time_sensitivity:
+            continue
+        
+        ts = item.time_sensitivity or "MONITOR"
+        
+        entry = {
+            "title": item.title,
+            "grade": item.intelligence_grade or "?",
+            "steps": item.next_steps or [],
+            "people": item.people_to_follow or [],
+            "directions": item.directions_to_watch or [],
+            "why": item.why_it_matters or "",
+            "time_sensitivity": ts,
+            "attention": item.attention_score or 0
+        }
+        
+        if ts == "NOW":
+            now_actions.append(entry)
+        elif ts == "THIS_WEEK":
+            week_actions.append(entry)
+        elif ts == "THIS_MONTH":
+            month_actions.append(entry)
+        else:
+            monitor_actions.append(entry)
+        
+        for p in entry["people"]:
+            all_people.add(p)
+        for d in entry["directions"]:
+            all_directions.add(d)
+    
+    now_actions.sort(key=lambda x: x["attention"], reverse=True)
+    week_actions.sort(key=lambda x: x["attention"], reverse=True)
+    
+    header = """**🎯 行动建议 — OpenNews Intelligence v3.0**
+_%s | %s_
+
+""" % (now.strftime("%Y-%m-%d %H:%M"), category.upper())
+    
+    body = ""
+    
+    if now_actions:
+        body += "**🔥 立即行动 (NOW)**\n\n"
+        for i, action in enumerate(now_actions[:5], 1):
+            grade_icon = {"S": "🔴", "A": "🟠", "B": "🟡"}.get(action["grade"], "⚪")
+            body += "%s **%d.** %s\n" % (grade_icon, i, action["title"][:65])
+            
+            for step in action["steps"][:3]:
+                body += "   ▶️ %s\n" % step
+            
+            if action["people"]:
+                body += "   👤 跟踪: %s\n" % ", ".join(action["people"][:2])
+            
+            if action["directions"]:
+                body += "   🔭 关注: %s\n" % "; ".join(action["directions"][:2])
+            
+            body += "\n"
+    
+    if week_actions:
+        body += "**📅 本周内完成 (THIS WEEK)**\n\n"
+        for action in week_actions[:4]:
+            body += "• **%s** [%s]\n" % (action["title"][:55], action["grade"])
+            for step in action["steps"][:2]:
+                body += "  ▶️ %s\n" % step
+            body += "\n"
+    
+    if month_actions:
+        body += "**📆 本月跟踪 (THIS_MONTH)**\n\n"
+        for action in month_actions[:3]:
+            body += "• %s [%s]\n" % (action["title"][:50], action["grade"])
+        body += "\n"
+    
+    if monitor_actions:
+        body += "**👁 长期监控 (MONITOR)**\n\n"
+        monitored_titles = [a["title"][:50] for a in monitor_actions[:6]]
+        body += "• " + "\n• ".join(monitored_titles) + "\n\n"
+    
+    body += "**━━ 跟踪清单 ━─**\n\n"
+    
+    if all_people:
+        body += "**👤 关键人物/账号:**\n"
+        for p in sorted(all_people)[:8]:
+            body += "  • %s\n" % p
+        body += "\n"
+    
+    if all_directions:
+        body += "**🔭 关注方向:**\n"
+        for d in sorted(all_directions)[:6]:
+            body += "  • %s\n" % d
+        body += "\n"
+    
+    total_actions = len(now_actions) + len(week_actions) + len(month_actions)
+    footer = "_共 %d 条行动建议 | NOW: %d | WEEK: %d | MONTH: %d_" % (
+        total_actions, len(now_actions), len(week_actions), len(month_actions)
+    )
     
     return header + body + footer
 
