@@ -1599,90 +1599,109 @@ async def gemini_deep_analyze(curated_items: list[CuratedItem]) -> list[CuratedI
         print("[Editor] No high-value items for deep analysis")
         return curated_items
     
-    items_for_analysis = [
-        {
-            "title": item.title,
-            "summary": item.summary,
-            "source": item.source,
-            "link": item.link,
-            "resonance_count": 1,
-            "signal_type": item.signal_type.value,
-            "initial_tier": item.content_tier.value,
-            "initial_score": item.overall_score
-        }
-        for item in high_value_items[:8]
-    ]
+    BATCH_SIZE = 5
+    BATCH_DELAY = 3
     
-    prompt = _build_analysis_prompt(items_for_analysis, "editor")
+    all_analyzed_map = {}
     
-    raw_response, success = await call_gemini_editor(prompt)
+    for batch_start in range(0, len(high_value_items), BATCH_SIZE):
+        batch = high_value_items[batch_start:batch_start + BATCH_SIZE]
+        batch_num = batch_start // BATCH_SIZE + 1
+        total_batches = (len(high_value_items) + BATCH_SIZE - 1) // BATCH_SIZE
+        
+        if batch_num > 1:
+            print("[Editor] Waiting %ds before batch %d/%d..." % (BATCH_DELAY, batch_num, total_batches))
+            await asyncio.sleep(BATCH_DELAY)
+        
+        items_for_analysis = [
+            {
+                "title": item.title,
+                "summary": item.summary,
+                "source": item.source,
+                "link": item.link,
+                "resonance_count": 1,
+                "signal_type": item.signal_type.value,
+                "initial_tier": item.content_tier.value,
+                "initial_score": item.overall_score
+            }
+            for item in batch
+        ]
+        
+        print("[Editor] Gemini batch %d/%d: analyzing %d items..." % (batch_num, total_batches, len(batch)))
+        
+        prompt = _build_analysis_prompt(items_for_analysis, "editor")
+        
+        raw_response, success = await call_gemini_editor(prompt)
+        
+        if success and raw_response:
+            try:
+                json_match = re.search(r'\[.*\]', raw_response, re.DOTALL)
+                if json_match:
+                    analyzed = json.loads(json_match.group())
+                    for a in analyzed:
+                        all_analyzed_map[a.get("id", "")] = a
+                    print("[Editor] Batch %d: parsed %d results" % (batch_num, len(analyzed)))
+            except Exception as e:
+                print("[Editor] Batch %d parse error: %s" % (batch_num, e))
+        else:
+            print("[Editor] Batch %d: Gemini failed, using rule-based fallback" % batch_num)
     
-    if success and raw_response:
-        try:
-            json_match = re.search(r'\[.*\]', raw_response, re.DOTALL)
-            if json_match:
-                analyzed = json.loads(json_match.group())
+    if all_analyzed_map:
+        for item in curated_items:
+            if item.id in all_analyzed_map:
+                a = all_analyzed_map[item.id]
                 
-                analyzed_map = {a.get("id", ""): a for a in analyzed}
+                item.who = a.get("who", item.who)
+                item.what = a.get("what", item.what)
+                item.where = a.get("where", item.where)
+                item.when = a.get("when", item.when)
+                item.why = a.get("why", item.why)
+                item.how = a.get("how", item.how)
+                item.implications = a.get("implications", item.implications)
                 
-                for item in curated_items:
-                    if item.id in analyzed_map:
-                        a = analyzed_map[item.id]
-                        
-                        item.who = a.get("who", item.who)
-                        item.what = a.get("what", item.what)
-                        item.where = a.get("where", item.where)
-                        item.when = a.get("when", item.when)
-                        item.why = a.get("why", item.why)
-                        item.how = a.get("how", item.how)
-                        item.implications = a.get("implications", item.implications)
-                        
-                        item.scores = a.get("scores", item.scores)
-                        item.overall_score = a.get("overall_score", item.overall_score)
-                        item.tier = a.get("tier", item.tier)
-                        
-                        item.tags = a.get("tags", item.tags)
-                        item.categories = a.get("categories", item.categories)
-                        
-                        item.core_highlight = a.get("core_highlight", "")
-                        item.industry_impact = a.get("industry_impact", "")
-                        item.comparison_context = a.get("comparison_context", "")
-                        
-                        item.historical_context = a.get("historical_context", "")
-                        item.competitor_reactions = a.get("competitor_reactions", {})
-                        item.industry_chain_position = a.get("industry_chain_position", "")
-                        
-                        item.fact_checks = a.get("fact_checks", [])
-                        item.source_chain = a.get("source_chain", [])
-                        
-                        item.actionable_for_editor = a.get("actionable_for_editor", "")
-                        item.draft_angles = a.get("draft_angles", [])
-                        
-                        item.editor_note = a.get("editor_note", "")
-                        
-                        scores = a.get("scores", {})
-                        if isinstance(scores, dict):
-                            item.attention_score = float(scores.get("attention_score", 0))
-                            item.tech_depth_score = float(scores.get("tech_depth_score", 0))
-                            item.industry_impact_score = float(scores.get("industry_impact_score", 0))
-                        
-                        item.intelligence_grade = a.get("intelligence_grade", "")
-                        
-                        item.why_it_matters = a.get("why_it_matters", "")
-                        item.significance_level = a.get("significance_level", "")
-                        item.key_takeaways = a.get("key_takeaways", [])
-                        item.context_gap = a.get("context_gap", "")
-                        
-                        item.action_plan = a.get("action_plan", {})
-                        item.next_steps = a.get("next_steps", [])
-                        item.people_to_follow = a.get("people_to_follow", [])
-                        item.directions_to_watch = a.get("directions_to_watch", [])
-                        item.time_sensitivity = a.get("time_sensitivity", "")
+                item.scores = a.get("scores", item.scores)
+                item.overall_score = a.get("overall_score", item.overall_score)
+                item.tier = a.get("tier", item.tier)
                 
-                print("[Editor] Deep analysis complete for %d items" % len(analyzed))
+                item.tags = a.get("tags", item.tags)
+                item.categories = a.get("categories", item.categories)
                 
-        except json.JSONDecodeError as e:
-            print("[Editor] JSON parse error: %s" % e)
+                item.core_highlight = a.get("core_highlight", "")
+                item.industry_impact = a.get("industry_impact", "")
+                item.comparison_context = a.get("comparison_context", "")
+                
+                item.historical_context = a.get("historical_context", "")
+                item.competitor_reactions = a.get("competitor_reactions", {})
+                item.industry_chain_position = a.get("industry_chain_position", "")
+                
+                item.fact_checks = a.get("fact_checks", [])
+                item.source_chain = a.get("source_chain", [])
+                
+                item.actionable_for_editor = a.get("actionable_for_editor", "")
+                item.draft_angles = a.get("draft_angles", [])
+                
+                item.editor_note = a.get("editor_note", "")
+                
+                scores = a.get("scores", {})
+                if isinstance(scores, dict):
+                    item.attention_score = float(scores.get("attention_score", 0))
+                    item.tech_depth_score = float(scores.get("tech_depth_score", 0))
+                    item.industry_impact_score = float(scores.get("industry_impact_score", 0))
+                
+                item.intelligence_grade = a.get("intelligence_grade", "")
+                
+                item.why_it_matters = a.get("why_it_matters", "")
+                item.significance_level = a.get("significance_level", "")
+                item.key_takeaways = a.get("key_takeaways", [])
+                item.context_gap = a.get("context_gap", "")
+                
+                item.action_plan = a.get("action_plan", {})
+                item.next_steps = a.get("next_steps", [])
+                item.people_to_follow = a.get("people_to_follow", [])
+                item.directions_to_watch = a.get("directions_to_watch", [])
+                item.time_sensitivity = a.get("time_sensitivity", "")
+        
+        print("[Editor] Deep analysis complete for %d items" % len(all_analyzed_map))
     else:
         print("[Editor] Gemini unavailable, using rule-based analysis")
         curated_items = _apply_rule_based_analysis(curated_items)
