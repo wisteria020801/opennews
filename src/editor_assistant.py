@@ -1186,7 +1186,7 @@ EDITOR_PROFILE = {
 }
 
 
-async def call_gemini_editor(prompt_text: str, max_retries: int = 3) -> tuple[str, bool]:
+async def call_gemini_editor(prompt_text: str, max_retries: int = 5) -> tuple[str, bool]:
     if not GEMINI_KEY:
         print("[Editor] No GEMINI_API_KEY found.")
         return "", False
@@ -1225,8 +1225,11 @@ async def call_gemini_editor(prompt_text: str, max_retries: int = 3) -> tuple[st
                     
                 elif response.status_code == 429:
                     retry_after = response.headers.get("Retry-After", "")
-                    wait_extra = int(retry_after) if retry_after.isdigit() else 10 + attempt * 5
-                    print("[Editor] Rate limited (429), waiting %ds..." % wait_extra)
+                    if retry_after.isdigit():
+                        wait_extra = int(retry_after)
+                    else:
+                        wait_extra = min(15 + attempt * 10, 60)
+                    print("[Editor] Rate limited (429), waiting %ds (retry %d/%d)..." % (wait_extra, attempt + 1, max_retries))
                     await asyncio.sleep(wait_extra)
                     last_error = "rate_limited"
                     continue

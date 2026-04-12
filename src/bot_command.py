@@ -74,16 +74,56 @@ async def call_telegram_api(method: str, **kwargs) -> dict:
 
 async def send_message(chat_id: str, text: str, parse_mode: str = "Markdown",
                        reply_markup: dict = None) -> bool:
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": parse_mode,
-        "disable_web_page_preview": True,
-    }
-    if reply_markup:
-        payload["reply_markup"] = reply_markup
-    result = await call_telegram_api("sendMessage", **payload)
-    return result.get("ok", False)
+    TG_MAX_LEN = 4096
+    
+    if len(text) <= TG_MAX_LEN:
+        payload = {
+            "chat_id": chat_id,
+            "text": text,
+            "parse_mode": parse_mode,
+            "disable_web_page_preview": True,
+        }
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+        result = await call_telegram_api("sendMessage", **payload)
+        return result.get("ok", False)
+    
+    parts = []
+    remaining = text
+    while remaining:
+        if len(remaining) <= TG_MAX_LEN:
+            parts.append(remaining)
+            break
+        
+        cut_pos = TG_MAX_LEN
+        while cut_pos > TG_MAX_LEN - 200 and cut_pos > 0:
+            if remaining[cut_pos] in ("\n", "。", ".", "！", "!", "？", "?", "；", ";"):
+                cut_pos += 1
+                break
+            cut_pos -= 1
+        
+        if cut_pos <= TG_MAX_LEN - 200:
+            cut_pos = TG_MAX_LEN
+        
+        parts.append(remaining[:cut_pos])
+        remaining = remaining[cut_pos:]
+    
+    for i, part in enumerate(parts):
+        is_last = (i == len(parts) - 1)
+        payload = {
+            "chat_id": chat_id,
+            "text": part,
+            "parse_mode": parse_mode,
+            "disable_web_page_preview": True,
+        }
+        if is_last and reply_markup:
+            payload["reply_markup"] = reply_markup
+        
+        result = await call_telegram_api("sendMessage", **payload)
+        if not result.get("ok", False) and i == 0:
+            return False
+    
+    return True
 
 
 def build_inline_keyboard(rows: list[list[dict]]) -> dict:
